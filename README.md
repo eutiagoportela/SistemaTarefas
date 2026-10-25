@@ -79,6 +79,7 @@ CRUD, filtros, autenticação JWT e demais capacidades: [Funcionalidades](#-func
   - [Comandos dotnet test](#quando-usar-cada-comando)
 - [Endpoints da API](#-endpoints-da-api)
 - [Testes Manuais (Swagger)](#-testes-manuais-via-swagger-ou-postman)
+  - [JSON pronto (copiar e colar)](#json-pronto-copiar-e-colar)
   - [Autenticação e registro](#autenticação-e-registro)
   - [Tarefas (CRUD e consultas)](#tarefas-crud-e-consultas)
   - [Status da tarefa](#status-da-tarefa)
@@ -941,17 +942,87 @@ Ferramentas: **xUnit**, **Moq**, **FluentAssertions**, **NetArchTest.Rules**, **
 
 Use o **Swagger na raiz** (local `http://localhost:5000` ou [demo hospedada](#-teste-rápido-api-hospedada-swagger)): login → **Authorize** (`Bearer {token}`) → exercitar rotas da tabela [Endpoints da API](#-endpoints-da-api).
 
-**Corpos mínimos (local: admin / Admin123):**
+**Local:** `admin` / `Admin123`. **Demo hospedada:** `demo` / `DemoSegura2026!`.
+
+Em **PUT**, **DELETE** e **POST** `.../iniciar|concluir|reabrir`, informe **`If-Match`** = campo **`versao`** (ou ETag do GET). Não use `traceId`. Ver [Teste rápido](#-teste-rápido-api-hospedada-swagger).
+
+### JSON pronto (copiar e colar)
+
+**POST `/api/v1/auth/login`** (local):
 
 ```json
-// POST /api/v1/auth/login
-{ "nomeUsuario": "admin", "senha": "Admin123" }
-
-// POST /api/v1/tarefas (autenticado)
-{ "titulo": "Minha tarefa", "descricao": "Opcional", "dataVencimento": "2026-12-15T18:00:00Z" }
+{
+  "nomeUsuario": "admin",
+  "senha": "Admin123"
+}
 ```
 
-Em **PUT**, **DELETE** e **POST** `.../iniciar|concluir|reabrir`, informe **`If-Match`** = campo **`versao`** (ou ETag do GET). Ver [Teste rápido](#-teste-rápido-api-hospedada-swagger).
+**POST `/api/v1/auth/login`** (demo Render):
+
+```json
+{
+  "nomeUsuario": "demo",
+  "senha": "DemoSegura2026!"
+}
+```
+
+**POST `/api/v1/auth/registrar`** (troque o nome se já existir):
+
+```json
+{
+  "nomeUsuario": "usuario_teste",
+  "senha": "SenhaForte1"
+}
+```
+
+**POST `/api/v1/auth/refresh`** (cole o `dados.refreshToken` do login):
+
+```json
+{
+  "refreshToken": "COLE_AQUI_O_REFRESH_TOKEN"
+}
+```
+
+**POST `/api/v1/tarefas`** (Authorize ativo; vencimento no futuro):
+
+```json
+{
+  "titulo": "Minha tarefa",
+  "descricao": "Opcional",
+  "dataVencimento": "2026-12-15T18:00:00Z"
+}
+```
+
+**PUT `/api/v1/tarefas/{id}`** + header **`If-Match`** = `versao` atual (ex.: `1`):
+
+```json
+{
+  "titulo": "Tarefa atualizada",
+  "descricao": "Texto novo",
+  "dataVencimento": "2026-12-20T18:00:00Z"
+}
+```
+
+**GET / DELETE / iniciar / concluir / reabrir / histórico:** sem body. Status e DELETE exigem **`If-Match`**.
+
+**Erros úteis para colar:**
+
+```json
+{
+  "nomeUsuario": "admin",
+  "senha": "errada"
+}
+```
+
+```json
+{
+  "titulo": "ab",
+  "descricao": "",
+  "dataVencimento": "2020-01-01T00:00:00Z"
+}
+```
+
+O primeiro gera **401** no login; o segundo gera **400** ao criar (título curto e vencimento no passado).
 
 Respostas de erro vêm em `RespostaPadrao` (`sucesso: false`, `mensagem`, `erros`, `traceId`). Use `traceId` para achar a linha nos logs (Serilog + use case).
 
@@ -959,8 +1030,8 @@ Respostas de erro vêm em `RespostaPadrao` (`sucesso: false`, `mensagem`, `erros
 
 | Cenário | O que fazer no Swagger | Sucesso | Erros comuns |
 |---------|------------------------|---------|--------------|
-| Login | `POST /api/v1/auth/login` com JSON acima | **200** + `dados.token` | **401** usuário/senha errados; **400** campos vazios |
-| Registrar | `POST /api/v1/auth/registrar` (usuário novo) | **200** | **409** nome já existe; **400** senha fraca ou inválida |
+| Login | `POST /api/v1/auth/login` com JSON de [JSON pronto](#json-pronto-copiar-e-colar) | **200** + `dados.token` | **401** usuário/senha errados; **400** campos vazios |
+| Registrar | `POST /api/v1/auth/registrar` com JSON de registro | **200** | **409** nome já existe; **400** senha fraca ou inválida |
 | Refresh | `POST /api/v1/auth/refresh` com `refreshToken` do login | **200** novo par de tokens | **401** token ausente, expirado ou revogado |
 
 ### Tarefas (CRUD e consultas)
