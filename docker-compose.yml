@@ -1,0 +1,42 @@
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: tarefas-mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root123
+      MYSQL_DATABASE: sistematarefas
+      MYSQL_USER: tarefas
+      MYSQL_PASSWORD: tarefas123
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+      start_period: 20s
+
+  api:
+    build: .
+    container_name: tarefas-api
+    depends_on:
+      mysql:
+        condition: service_healthy
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__Default: Server=mysql;Port=3306;Database=sistematarefas;User=tarefas;Password=tarefas123;TreatTinyAsBoolean=true
+      Jwt__Secret: development-secret-key-minimum-32-characters-sistema-tarefas
+      Jwt__Issuer: SistemaTarefas
+      Jwt__Audience: SistemaTarefas
+      Jwt__ExpiracaoMinutos: "120"
+      Swagger__Habilitado: "true"
+      Seed__Admin__Usuario: admin
+      Seed__Admin__Senha: Admin123
+      Banco__AplicarMigrationsNoStartup: "true"
+    ports:
+      - "5000:8080"
+
+volumes:
+  mysql_data:

@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+  <ItemGroup>
+    <PackageReference Include="FluentAssertions" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" />
+    <PackageReference Include="NetArchTest.Rules" />
+    <PackageReference Include="xunit" />
+    <PackageReference Include="xunit.runner.visualstudio" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\SistemaTarefas.Api\SistemaTarefas.Api.csproj" />
+    <ProjectReference Include="..\..\src\SistemaTarefas.Application\SistemaTarefas.Application.csproj" />
+    <ProjectReference Include="..\..\src\SistemaTarefas.Communication\SistemaTarefas.Communication.csproj" />
+    <ProjectReference Include="..\..\src\SistemaTarefas.Domain\SistemaTarefas.Domain.csproj" />
+    <ProjectReference Include="..\..\src\SistemaTarefas.Infrastructure\SistemaTarefas.Infrastructure.csproj" />
+  </ItemGroup>
+</Project>

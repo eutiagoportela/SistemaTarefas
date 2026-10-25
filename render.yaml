@@ -1,0 +1,25 @@
+services:
+  - type: web
+    name: sistema-tarefas-api
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: ASPNETCORE_ENVIRONMENT
+        value: Production
+      - key: Swagger__Habilitado
+        value: "true"
+      - key: Banco__AplicarMigrationsNoStartup
+        value: "true"
+      - key: ConnectionStrings__Default
+        sync: false
+      - key: Jwt__Secret
+        generateValue: true
+      - key: Jwt__Issuer
+        value: SistemaTarefas
+      - key: Jwt__Audience
+        value: SistemaTarefas
+      - key: Seed__Admin__Usuario
+        value: demo
+      - key: Seed__Admin__Senha
+        sync: false
