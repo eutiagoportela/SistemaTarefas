@@ -1153,6 +1153,48 @@ Authorization: Bearer token_invalido
 
 ## 🌐 Demo hospedada
 
-Após publicar (ex.: Render — ver `render.yaml`), inclua aqui a URL pública.
+A API sobe no **Render** (Docker) e o MySQL fica em um serviço externo (ex.: **Railway**). O arquivo `render.yaml` na raiz descreve as variáveis da API.
 
-Até lá: **F5 + MySQL Docker (3307)** ou **`docker compose up --build`**.
+### Passo A — MySQL na nuvem (Railway)
+
+1. Crie conta em [railway.app](https://railway.app) → **New Project** → **Add MySQL**.
+2. No serviço MySQL → **Variables** ou **Connect** → anote host, porta, usuário, senha e database.
+3. Ative **Public Networking** se o host só existir na rede interna (Render precisa alcançar o banco pela internet).
+4. Monte a connection string (ajuste os valores):
+
+```text
+Server=HOST;Port=PORTA;Database=DB;User=USER;Password=SENHA;SslMode=Required;TreatTinyAsBoolean=true
+```
+
+Se falhar SSL, teste `SslMode=Preferred`.
+
+### Passo B — API no Render
+
+1. Conta em [render.com](https://render.com) → conecte o GitHub **eutiagoportela/SistemaTarefas**.
+2. **New** → **Blueprint** → selecione o repo (usa o `render.yaml`).
+3. Preencha os secrets quando pedir:
+
+| Variável | Valor |
+|----------|--------|
+| `ConnectionStrings__Default` | string do Passo A |
+| `Seed__Admin__Senha` | senha forte para login demo (usuário **`demo`**) |
+
+4. Aguarde o deploy (build Docker). URL típica: `https://sistema-tarefas-api.onrender.com`.
+
+### Passo C — Validar
+
+1. Abra a URL → **Swagger** na raiz.
+2. `GET /health` → healthy.
+3. `POST /api/v1/auth/login` → `{ "nomeUsuario": "demo", "senha": "..." }` (senha do Passo B).
+4. **Authorize** → `Bearer {token}` → criar tarefa.
+
+**Plano free:** o serviço “dorme” após ~15 min sem uso; a primeira requisição pode demorar ~1 min.
+
+### URL pública (preencha após o deploy)
+
+| Item | Valor |
+|------|--------|
+| **Swagger** | _cole aqui a URL do Render_ |
+| **Login demo** | usuário `demo` + senha definida no Render (não commitar) |
+
+**Local:** **F5 + MySQL Docker (3307)** ou **`docker compose up --build`** — usuário `admin` / `Admin123`.

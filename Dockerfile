@@ -14,7 +14,8 @@ FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
 WORKDIR /app
 RUN adduser --disabled-password --gecos "" appuser
 COPY --from=build /app .
+COPY docker-entrypoint.sh .
+RUN sed -i 's/\r$//' docker-entrypoint.sh && chmod +x docker-entrypoint.sh
 USER appuser
 EXPOSE 8080
-ENV ASPNETCORE_URLS=http://+:8080
-ENTRYPOINT ["dotnet", "SistemaTarefas.Api.dll"]
+ENTRYPOINT ["./docker-entrypoint.sh"]
