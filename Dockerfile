@@ -10,7 +10,7 @@ RUN dotnet restore src/SistemaTarefas.Api/SistemaTarefas.Api.csproj
 COPY src/ src/
 RUN dotnet publish src/SistemaTarefas.Api/SistemaTarefas.Api.csproj -c Release -o /app --no-restore
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+FROM mcr.microsoft.com/dotnet/aspnet:10.0 AS final
 WORKDIR /app
 RUN adduser --disabled-password --gecos "" appuser
 COPY --from=build /app .
