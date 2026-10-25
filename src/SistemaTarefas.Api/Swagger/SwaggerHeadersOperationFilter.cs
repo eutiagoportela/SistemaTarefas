@@ -30,7 +30,7 @@ public sealed class SwaggerHeadersOperationFilter : IOperationFilter
                 operation,
                 "If-Match",
                 required: true,
-                "Versão atual da tarefa: copie o campo `versao` do GET (lista ou por id) ou o valor do header ETag (ex.: 1).");
+                "Número inteiro do campo JSON `versao` (ex.: 1) ou ETag do GET por id (ex.: \"1\"). Não use `traceId`.");
         }
     }
 

@@ -1148,7 +1148,8 @@ Authorization: Bearer token_invalido
 | MySQL connection refused | `docker compose up -d mysql` e aguarde healthy |
 | Login 412 / concorrência | Rebuild com API parada (versão antiga em memória) |
 | Authorize não funciona | Use `Bearer {token}` no Swagger |
-| PUT/iniciar retorna 428 | Envie header `If-Match` com versão do ETag do GET |
+| PUT/iniciar retorna 428 | Envie header `If-Match` com o número **`versao`** (ex.: `1`) ou ETag do GET |
+| **400** If-Match inválido | Não use **`traceId`** — só o campo **`versao`** do JSON ou ETag (ex.: `1`) |
 | Build falha (DLL locked) | Pare o debug no Visual Studio antes de compilar |
 
 ---

@@ -277,7 +277,10 @@ public sealed class TarefasController : ControllerBase
         var valor = raw.ToString().Trim().Trim('"');
         if (!uint.TryParse(valor, out versao))
         {
-            erro = BadRequest(RespostaPadrao<object>.ComErro("If-Match inválido.", "Erros de validação", HttpContext.TraceIdentifier));
+            erro = BadRequest(RespostaPadrao<object>.ComErro(
+                "If-Match deve ser o número do campo versao (ex.: 1) ou o ETag do GET — não use traceId da resposta de erro.",
+                "Erros de validação",
+                HttpContext.TraceIdentifier));
             return false;
         }
 
