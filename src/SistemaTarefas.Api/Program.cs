@@ -74,7 +74,7 @@ if (swaggerLigado)
         {
             Title = "Sistema Tarefas API",
             Version = "v1",
-            Description = "API de gestão de tarefas (ToDo) — desafio .NET"
+            Description = "API de gestão de tarefas (ToDo) — .NET 8"
         });
         c.AddSecurityDefinition("Bearer", new OpenApiSecurityScheme
         {

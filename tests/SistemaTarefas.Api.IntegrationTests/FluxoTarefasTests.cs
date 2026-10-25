@@ -21,7 +21,7 @@ public class FluxoTarefasTests : IAsyncLifetime
         .Build();
 
     private WebApplicationFactory<Program>? _factory;
-    private HttpClient? _client;
+    private HttpClient _client = null!;
 
     public async Task InitializeAsync()
     {
@@ -53,13 +53,13 @@ public class FluxoTarefasTests : IAsyncLifetime
     [Fact]
     public async Task Login_E_CriarTarefa_DeveFuncionar()
     {
-        var login = await _client!.PostAsJsonAsync("/api/v1/auth/login", new { nomeUsuario = "admin", senha = "Admin123" });
+        var login = await _client.PostAsJsonAsync("/api/v1/auth/login", new { nomeUsuario = "admin", senha = "Admin123" });
         login.StatusCode.Should().Be(HttpStatusCode.OK);
         using var doc = JsonDocument.Parse(await login.Content.ReadAsStringAsync());
         var token = doc.RootElement.GetProperty("dados").GetProperty("token").GetString();
         token.Should().NotBeNullOrEmpty();
 
-        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token!);
         var criar = await _client.PostAsJsonAsync("/api/v1/tarefas", new
         {
             titulo = "Tarefa de integração",
@@ -73,7 +73,7 @@ public class FluxoTarefasTests : IAsyncLifetime
     [Fact]
     public async Task AtualizarTarefa_ComIfMatch_DeveRetornarOk()
     {
-        var login = await _client!.PostAsJsonAsync("/api/v1/auth/login", new { nomeUsuario = "admin", senha = "Admin123" });
+        var login = await _client.PostAsJsonAsync("/api/v1/auth/login", new { nomeUsuario = "admin", senha = "Admin123" });
         login.EnsureSuccessStatusCode();
         using var loginDoc = JsonDocument.Parse(await login.Content.ReadAsStringAsync());
         var token = loginDoc.RootElement.GetProperty("dados").GetProperty("token").GetString();

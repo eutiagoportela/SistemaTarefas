@@ -1,6 +1,6 @@
 # 📋 Sistema de Gestão de Tarefas (ToDo)
 
-API RESTful para gerenciamento de tarefas (.NET 8) — Docker MySQL, execução com F5 no Visual Studio, Swagger na raiz com login e **Authorize**.
+API RESTful para gerenciamento de tarefas (.NET 8), com Docker MySQL, execução com F5 no Visual Studio e Swagger na raiz (login e **Authorize**).
 
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
@@ -9,7 +9,7 @@ API RESTful para gerenciamento de tarefas (.NET 8) — Docker MySQL, execução 
 
 ---
 
-## 🚀 Teste rápido — API hospedada (Swagger)
+## 🚀 Teste rápido: API hospedada (Swagger)
 
 | Item | Valor |
 |------|--------|
@@ -36,29 +36,52 @@ API RESTful para gerenciamento de tarefas (.NET 8) — Docker MySQL, execução 
 
 CRUD, filtros, autenticação JWT e demais capacidades: [Funcionalidades](#-funcionalidades) e [Endpoints da API](#-endpoints-da-api). Arquitetura, testes e instalação local: índice abaixo.
 
-**Rodar local (F5):** [Instalação e Configuração](#-instalação-e-configuração) — login `admin` / `Admin123`.
+**Rodar local (F5):** [Instalação e Configuração](#-instalação-e-configuração) com login `admin` / `Admin123`.
 
 ---
 
 ## 📋 Índice
 
-- [Teste rápido — API hospedada](#-teste-rápido--api-hospedada-swagger)
+- [Teste rápido: API hospedada](#-teste-rápido-api-hospedada-swagger)
 - [Sobre o Projeto](#-sobre-o-projeto)
+  - [Destaques](#-destaques)
 - [Funcionalidades](#-funcionalidades)
 - [Tecnologias Utilizadas](#-tecnologias-utilizadas)
+  - [Backend](#backend)
+  - [Segurança](#segurança)
+  - [Qualidade e testes](#qualidade-e-testes)
+  - [Ferramentas](#ferramentas)
 - [Arquitetura](#️-arquitetura)
+  - [Princípios e padrões](#princípios-e-padrões-aplicados)
 - [Fluxos do Projeto](#-fluxos-do-projeto)
-  - [Docker (API e banco)](#1-fluxo-docker-api--banco)
-  - [TDD do domínio](#2-fluxo-tdd-do-domínio-fase-1)
-  - [Polly (resiliência)](#3-fluxo-de-resiliência-polly)
-  - [HTTP (Swagger)](#4-fluxo-http-swagger--banco--resposta)
-  - [DDD — dependências entre camadas](#5-fluxo-ddd-dependências-entre-camadas)
+  - [1. Docker (API e banco)](#1-fluxo-docker-api--banco)
+  - [2. TDD do domínio](#2-fluxo-tdd-do-domínio-fase-1)
+  - [3. Polly (resiliência)](#3-fluxo-de-resiliência-polly)
+  - [4. HTTP (Swagger)](#4-fluxo-http-swagger--banco--resposta)
+  - [5. DDD (camadas e comandos)](#5-fluxo-ddd-dependências-entre-camadas)
+  - [Observabilidade nos fluxos](#observabilidade-cliente--servidor)
 - [Pré-requisitos](#-pré-requisitos)
 - [Instalação e Configuração](#-instalação-e-configuração)
+  - [Passo 1: Clonar](#-passo-1-clonar-o-repositório)
+  - [Passo 2: MySQL (Docker)](#-passo-2-iniciar-o-mysql-com-docker)
+  - [Passo 3: Restaurar pacotes](#-passo-3-restaurar-pacotes)
+  - [Passo 4: Migrations / seed](#-passo-4-banco-de-dados-migrations)
+  - [Passo 5: Executar a API](#-passo-5-executar-a-api)
+  - [Passo 6: Testes automatizados](#-passo-6-executar-os-testes-automatizados)
 - [Testes Automatizados](#-testes-automatizados)
+  - [Visão geral (4 projetos)](#visão-geral)
+  - [Exemplos (Domain)](#exemplos-de-testes-domain)
+  - [Exemplos (Application e Architecture)](#exemplos-application-e-architecture)
+  - [Exemplos (Integração)](#exemplos-integração)
+  - [Comandos dotnet test](#quando-usar-cada-comando)
 - [Endpoints da API](#-endpoints-da-api)
-- [Testes Manuais via Swagger ou Postman](#-testes-manuais-via-swagger-ou-postman)
+- [Testes Manuais (Swagger)](#-testes-manuais-via-swagger-ou-postman)
+  - [Autenticação e registro](#autenticação-e-registro)
+  - [Tarefas (CRUD e consultas)](#tarefas-crud-e-consultas)
+  - [Status da tarefa](#status-da-tarefa)
+  - [Segurança HTTP](#segurança-http)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
+  - [Arquivos na raiz (CPM, props)](#arquivos-na-raiz-gestão-centralizada-da-solution)
 - [Solução de Problemas](#-solução-de-problemas)
 - [Demo hospedada](#-demo-hospedada)
 
@@ -72,7 +95,7 @@ Sistema para **criar, listar, atualizar e concluir tarefas** (ToDo), com status 
 
 ✨ **Domínio rico (DDD)**: agregado `Tarefa`, value objects, eventos de domínio e auditoria
 
-🏗️ **Clean Architecture**: Api, Application, Domain, Infrastructure e Communication — Domain sem dependências externas
+🏗️ **Clean Architecture**: Api, Application, Domain, Infrastructure e Communication, com Domain sem dependências externas
 
 🔒 **Segurança**: JWT + BCrypt + refresh token rotacionado
 
@@ -96,6 +119,7 @@ Sistema para **criar, listar, atualizar e concluir tarefas** (ToDo), com status 
 - ✅ **Respostas padronizadas**: envelope `RespostaPadrao` em todos os endpoints
 - ✅ **Documentação interativa**: Swagger/OpenAPI com descrições por endpoint, códigos HTTP e JWT (**Authorize**)
 - ✅ **Histórico**: trilha em `AuditoriaRegistros` a partir de eventos de domínio
+- ✅ **Observabilidade**: Serilog por requisição; `ILogger` nos use cases (auth e tarefas) para falhas de negócio; middleware para exceções. Resposta JSON com `traceId`; detalhe operacional nos logs do servidor (sem senha)
 - ✅ **Seed**: usuário admin criado no primeiro startup (Development)
 - ✅ **Docker Compose**: MySQL com healthcheck; API opcional em container
 
@@ -104,26 +128,26 @@ Sistema para **criar, listar, atualizar e concluir tarefas** (ToDo), com status 
 ## 🛠️ Tecnologias Utilizadas
 
 ### Backend
-- **.NET 8** — ASP.NET Core Web API
-- **Entity Framework Core 8** — ORM
-- **MySQL 8.0** — banco relacional
-- **Pomelo.EntityFrameworkCore.MySql 8** — provider MySQL
+- **.NET 8**: ASP.NET Core Web API
+- **Entity Framework Core 8**: ORM
+- **MySQL 8.0**: banco relacional
+- **Pomelo.EntityFrameworkCore.MySql 8**: provider MySQL
 
 ### Segurança
-- **JWT Bearer** — access token
-- **BCrypt.Net-Next** — hash de senhas
+- **JWT Bearer**: access token
+- **BCrypt.Net-Next**: hash de senhas
 
 ### Qualidade e testes
 - **xUnit**, **Moq**, **FluentAssertions**
-- **NetArchTest** — regras de dependência entre camadas
-- **Testcontainers** — testes de integração com MySQL
+- **NetArchTest**: regras de dependência entre camadas
+- **Testcontainers**: testes de integração com MySQL
 
 ### Ferramentas
-- **FluentValidation** — validação de requests
-- **Polly** — resiliência no commit
+- **FluentValidation**: validação de requests
+- **Polly**: resiliência no commit
 - **Serilog**, **OpenTelemetry** (console)
-- **Swashbuckle** — Swagger/OpenAPI
-- **Docker Compose** — MySQL e stack completa
+- **Swashbuckle**: Swagger/OpenAPI
+- **Docker Compose**: MySQL e stack completa
 
 ---
 
@@ -147,14 +171,15 @@ O projeto segue **Clean Architecture** com **DDD** na camada de domínio:
 
 ### Princípios e Padrões Aplicados
 
-- ✅ **SOLID** — responsabilidades separadas por camada
-- ✅ **DRY** — mapeamentos e validadores reutilizáveis
-- ✅ **Dependency Injection** — `AddJwtAuthentication`, `AddMySqlConfiguration`, `AddApplication`
-- ✅ **Repository Pattern** — abstração de persistência
-- ✅ **Unit of Work** — commit único; repositórios não chamam `SaveChanges`
-- ✅ **Use Case Pattern** — uma operação por interface/classe
-- ✅ **Result Pattern** — `Resultado<T>` na Application; HTTP via `ResultadoHttp`
-- ✅ **Domain Events** — auditoria derivada no commit
+- ✅ **SOLID**: responsabilidades separadas por camada
+- ✅ **DRY**: mapeamentos e validadores reutilizáveis
+- ✅ **Dependency Injection**: `AddJwtAuthentication`, `AddMySqlConfiguration`, `AddApplication`
+- ✅ **Repository Pattern**: abstração de persistência
+- ✅ **Unit of Work**: commit único; repositórios não chamam `SaveChanges`
+- ✅ **Use Case Pattern**: uma operação por interface/classe
+- ✅ **Result Pattern**: `Resultado<T>` na Application; HTTP via `ResultadoHttp`
+- ✅ **Domain Events**: auditoria derivada no commit
+- ✅ **Logging na Application**: controllers só chamam `ParaHttp`; validação, auth, 404/409 e regras de domínio registradas com `ILogger<T>` nos use cases
 
 ---
 
@@ -243,7 +268,7 @@ flowchart LR
 | **Circuit breaker** | Após muitas falhas, commit falha rápido |
 | **Concorrência** | `DbUpdateConcurrencyException` → middleware **412** (If-Match / versão) |
 
-O Pomelo também tem retry na **conexão** (`MySqlConfig`) — isso é separado do Polly do commit.
+O Pomelo também tem retry na **conexão** (`MySqlConfig`): isso é separado do Polly do commit.
 
 ---
 
@@ -259,17 +284,26 @@ sequenceDiagram
     participant R as Repository
     participant UOW as UnitOfWork
     participant DB as MySQL
+    participant LOG as Serilog + ILogger
 
     U->>MW: HTTP + JSON
+    Note over MW,LOG: Serilog: método, rota, status HTTP
     MW->>AUTH: validar token (rotas protegidas)
     AUTH->>C: UsuarioAtual
     C->>UC: Execute
+    alt Resultado com falha
+        UC->>LOG: LogWarning / LogInformation (use case)
+    else exceção não tratada
+        MW->>LOG: LogError (middleware)
+    end
     UC->>R: consulta / Add
     UC->>UOW: CommitAsync (comandos)
     UOW->>DB: SaveChanges + auditoria
     UC-->>C: Resultado T
-    C-->>U: RespostaPadrao JSON (+ ETag se aplicável)
+    C-->>U: RespostaPadrao JSON (+ traceId, ETag se aplicável)
 ```
+
+Falhas de negócio vão no **envelope** (`mensagem`, `erros`, **`traceId`**) e, em paralelo, no **log do servidor** (validação, auth, 404/409, domínio). Ver [Observabilidade nos fluxos](#observabilidade-cliente--servidor).
 
 **Login e Authorize:**
 
@@ -401,7 +435,7 @@ flowchart TB
 | Camada | Pode | Não pode |
 |--------|------|----------|
 | **Domain** | Regras, VO, eventos, interfaces de repositório | Referenciar EF, HTTP, JWT, DTOs |
-| **Application** | Orquestrar, validar entrada, `Resultado<T>` | `SaveChanges`, DbContext, detalhes SQL |
+| **Application** | Orquestrar, validar entrada, `Resultado<T>`, logs de falha (`ILogger`) | `SaveChanges`, DbContext, detalhes SQL |
 | **Infrastructure** | EF, repositórios, UoW, Polly, token | Regra de negócio de tarefa |
 | **Api** | Auth HTTP, headers ETag/If-Match, status code | `if (status == Concluido)` de negócio |
 
@@ -414,7 +448,7 @@ Testes **`DependenciasTests`** (Architecture) garantem que essas fronteiras não
 | **Comando** | Criar, PUT, iniciar/concluir/reabrir, excluir | Métodos no agregado | `IUnitOfWork.CommitAsync` |
 | **Consulta** | Listar, obter por id, histórico | Só leitura; `ParaResponse` | Geralmente **sem** UoW (histórico usa `IAuditoriaConsulta`) |
 
-Listar aplica filtros no **repositório** (Infrastructure), mas **não muda** o agregado — é projeção para `TarefaResponse`.
+Listar aplica filtros no **repositório** (Infrastructure), mas **não muda** o agregado: é projeção para `TarefaResponse`.
 
 ---
 
@@ -432,12 +466,14 @@ sequenceDiagram
     participant R as ITarefaRepository
     participant UOW as IUnitOfWork
     participant W as UnitOfWork
+    participant LOG as ILogger
 
     HTTP->>C: JSON RequestCriarTarefa
     C->>UC: Execute(request)
     UC->>V: ValidateAsync
     alt falha FluentValidation
         V-->>UC: erros
+        UC->>LOG: LogWarning (validação)
         UC-->>C: Resultado.Validacao → 400
     end
     UC->>UA: Id do JWT
@@ -445,6 +481,7 @@ sequenceDiagram
     D->>VO: new Titulo / new Descricao
     alt VO ou vencimento inválido
         VO-->>UC: DomainException
+        UC->>LOG: LogWarning (domínio)
         UC-->>C: Resultado.Validacao → 400
     end
     D-->>UC: Tarefa + evento TarefaCriada
@@ -460,24 +497,26 @@ sequenceDiagram
 
 **Passo a passo (arquivos):**
 
-1. `TarefasController.Criar` — recebe `RequestCriarTarefa` (Communication).
-2. `CriarTarefaUseCase` — validação **de entrada** (FluentValidation).
-3. `Tarefa.Criar` — validação **de negócio** (vencimento futuro, VO de título).
-4. `TarefaRepository.AdicionarAsync` — adiciona ao `DbContext` (memória).
-5. `UnitOfWork.CommitAsync` — lê eventos do agregado → `AuditoriaRegistros` → `SaveChanges` (Polly).
-6. `TarefaMappings.ParaResponse` — monta DTO **sem** expor entidade EF na API.
-7. `ResultadoHttp.ParaHttp` — envelope `RespostaPadrao`.
+1. `TarefasController.Criar`: recebe `RequestCriarTarefa` (Communication).
+2. `CriarTarefaUseCase`: validação **de entrada** (FluentValidation).
+3. `Tarefa.Criar`: validação **de negócio** (vencimento futuro, VO de título).
+4. `TarefaRepository.AdicionarAsync`: adiciona ao `DbContext` (memória).
+5. `UnitOfWork.CommitAsync`: lê eventos do agregado → `AuditoriaRegistros` → `SaveChanges` (Polly).
+6. `TarefaMappings.ParaResponse`: monta DTO **sem** expor entidade EF na API.
+7. `ResultadoHttp.ParaHttp`: envelope `RespostaPadrao` (+ `traceId`).
+8. Em falha (passos 2–3): `CriarTarefaUseCase` → `LogWarning` (servidor); cliente recebe 400 no JSON.
 
 ---
 
 #### Fluxo DDD detalhado: **concluir tarefa** (comando + versão)
 
-1. **Api:** `If-Match` lido no controller → `uint versao`.
-2. **Application:** `ComandosTarefaUseCase.Concluir` → carrega tarefa → **autorização** (dono ou admin).
-3. **Application:** se `versao != tarefa.Versao` → `Resultado.Conflito` (409) **antes** de chamar o domínio.
-4. **Domain:** `tarefa.Concluir(relogio)` — se não estiver `EmAndamento`, `DomainException` → vira `Resultado.Validacao`.
+1. **Api:** `If-Match` lido no controller → `uint versao` (If-Match inválido → 400 no controller, só Serilog).
+2. **Application:** `ComandosTarefaUseCase.Concluir` → carrega tarefa → **autorização** (dono ou admin) → `LogWarning` se não encontrada ou acesso negado.
+3. **Application:** se `versao != tarefa.Versao` → `LogWarning` (versões) → `Resultado.Conflito` (409) **antes** de chamar o domínio.
+4. **Domain:** `tarefa.Concluir(relogio)`: se não estiver `EmAndamento`, `DomainException` → `LogWarning` → `Resultado.Validacao`.
 5. **Domain:** adiciona `TarefaConcluida` à lista interna de eventos.
 6. **Infrastructure:** `CommitAsync` persiste mudanças + linhas de auditoria; `Versao` sobe (token de concorrência EF).
+7. **Api:** `ParaHttp`: 200 + ETag; mesmo padrão vale para iniciar, reabrir, PUT e DELETE.
 
 ```mermaid
 sequenceDiagram
@@ -485,32 +524,48 @@ sequenceDiagram
     participant UC as ComandosTarefaUseCase
     participant T as Tarefa
     participant UOW as UnitOfWork
+    participant LOG as ILogger
 
     C->>UC: Concluir(id, versao)
-    UC->>UC: ObterAutorizada + comparar versao
-    UC->>T: Concluir()
-    T->>T: Status = Concluido + evento
-    UC->>UOW: CommitAsync
-    UOW->>UOW: Auditoria + SaveChanges
-    UC-->>C: TarefaResponse + nova Versao
+    UC->>UC: ObterAutorizada
+    alt não encontrada ou sem permissão
+        UC->>LOG: LogWarning
+        UC-->>C: NaoEncontrado → 404
+    else versao divergente
+        UC->>LOG: LogWarning (conflito)
+        UC-->>C: Conflito → 409
+    else comando no domínio
+        UC->>T: Concluir()
+        alt transição inválida
+            T-->>UC: DomainException
+            UC->>LOG: LogWarning
+            UC-->>C: Validacao → 400
+        else sucesso
+            T->>T: Status = Concluido + evento
+            UC->>UOW: CommitAsync
+            UOW->>UOW: Auditoria + SaveChanges
+            UC-->>C: TarefaResponse + nova Versao
+        end
+    end
 ```
 
 ---
 
 #### Fluxo DDD detalhado: **listar tarefas** (consulta)
 
-1. `ListarTarefasUseCase` — normaliza paginação (Application).
-2. `IUsuarioAtual` — restringe query ao `UsuarioId` (ou admin vê todas).
-3. `TarefaRepository.ListarAsync` — IQueryable + filtros (status, vencimento, atrasadas, busca).
-4. **Sem** `CommitAsync` — nenhum evento de domínio disparado.
+1. `ListarTarefasUseCase`: normaliza paginação (Application).
+2. `IUsuarioAtual`: restringe query ao `UsuarioId` (ou admin vê todas).
+3. `TarefaRepository.ListarAsync`: IQueryable + filtros (status, vencimento, atrasadas, busca).
+4. **Sem** `CommitAsync`: nenhum evento de domínio disparado.
 5. Projeção: `Select` implícito via `ParaResponse` em memória após materializar página.
+6. **Log:** use case não emite log de negócio no caminho feliz; **Serilog** registra o `GET` e o status.
 
 ---
 
 #### Value Objects e persistência (anti-corruption na Infrastructure)
 
 - `Titulo` e `Descricao` validam no **construtor** (Domain).
-- `TarefasDbContext` converte VO ↔ coluna string (`HasConversion`) — EF é detalhe de Infrastructure; Domain não sabe que existe MySQL.
+- `TarefasDbContext` converte VO ↔ coluna string (`HasConversion`): EF é detalhe de Infrastructure; Domain não sabe que existe MySQL.
 
 ---
 
@@ -524,7 +579,21 @@ sequenceDiagram
 | Concorrência EF | `DbUpdateConcurrencyException` | 412 |
 | Falha infra (Polly circuito) | Exception não tratada | 500 |
 
-Os use cases devolvem **`Resultado<T>`**; o controller só traduz para HTTP — regra de negócio não fica na Api.
+Os use cases devolvem **`Resultado<T>`**; o controller só traduz para HTTP. Regra de negócio não fica na Api.
+
+#### Observabilidade: cliente × servidor
+
+| Canal | O que aparece |
+|-------|----------------------|
+| **Resposta HTTP** | `RespostaPadrao` com `traceId` (correlacionar com log da requisição Serilog) |
+| **Use cases (auth)** | Tentativa/sucesso de login, credenciais inválidas, registro duplicado, refresh inválido |
+| **Use cases (tarefas)** | Validação, tarefa inexistente, acesso negado (404 genérico ao cliente), conflito de `versao` (409), regra de domínio |
+| **Api** | `ExceptionHandlingMiddleware` → `LogError` em exceção não tratada |
+| **Infrastructure** | Seed/retry MySQL no startup (`InicializadorBanco`) |
+
+Senhas e tokens completos **não** entram em log.
+
+**Por quê separar JSON e log?** Em ambiente **hospedado** (Render, container, etc.) não há depurador attach: o **`traceId`** na resposta permite ao usuário ou suporte apontar uma falha; nos **Logs** do serviço, o Serilog mostra a requisição (método, rota, status) e o use case registra o **motivo de negócio** (401, 409, acesso negado) sem expor isso no corpo HTTP nem gravar senha. Controllers continuam finos (`Resultado` → `ParaHttp`); a decisão e o diagnóstico ficam na Application.
 
 ---
 
@@ -551,18 +620,50 @@ flowchart LR
 | `TarefaConcluida` | `Concluir` | Histórico |
 | `TarefaReaberta` | `Reabrir` | Histórico |
 
-`GET .../historico` lê **AuditoriaRegistros** via `IAuditoriaConsulta` — não reexecuta regras do agregado.
+`GET .../historico` lê **AuditoriaRegistros** via `IAuditoriaConsulta`: não reexecuta regras do agregado.
 
 ---
 
-#### Auth no DDD (login — fluxo resumido)
+#### Auth no DDD (login: fluxo resumido)
 
 Auth é **caso de uso de aplicação** + **infra de token**, não passa pelo agregado `Tarefa`:
+
+```mermaid
+sequenceDiagram
+    participant C as AuthController
+    participant UC as LoginUseCase
+    participant R as IUsuarioRepository
+    participant H as IPasswordHasher
+    participant T as ITokenService
+    participant LOG as ILogger
+
+    C->>UC: Execute(RequestLogin)
+    UC->>UC: FluentValidation
+    alt inválido
+        UC->>LOG: LogWarning
+        UC-->>C: Validacao → 400
+    end
+    UC->>LOG: LogInformation (tentativa)
+    UC->>R: ObterPorNomeAsync
+    alt credenciais inválidas
+        UC->>LOG: LogWarning
+        UC-->>C: NaoAutorizado → 401
+    end
+    UC->>H: Verificar(senha, hash)
+    UC->>T: GerarAccessToken + refresh
+    UC->>R: AdicionarRefreshTokenAsync
+    UC->>LOG: LogInformation (sucesso)
+    UC-->>C: Ok(LoginResponse)
+    C-->>C: ParaHttp → JSON + traceId
+```
+
+**Passos (arquivos):**
 
 1. `LoginUseCase` → `IUsuarioRepository.ObterPorNomeAsync`
 2. `IPasswordHasher.Verificar` (Infrastructure / BCrypt)
 3. `ITokenService.GerarAccessToken` (Infrastructure / JWT)
-4. `AdicionarRefreshTokenAsync` + `CommitAsync` — persiste refresh **sem** alterar campos desnecessários do usuário
+4. `AdicionarRefreshTokenAsync` + `CommitAsync`: persiste refresh **sem** alterar campos desnecessários do usuário
+5. `RegistrarUsuarioUseCase` / `RefreshTokenUseCase`: mesmo padrão: `Resultado` para o cliente, `ILogger` para falhas (senha **nunca** logada)
 
 ---
 
@@ -613,7 +714,7 @@ dotnet restore
 
 ### 🗄️ Passo 4: Banco de dados (migrations)
 
-**Não é obrigatório rodar CLI manualmente** — na subida da API, o `InicializadorBanco` executa `MigrateAsync` e cria o usuário admin.
+**Não é obrigatório rodar CLI manualmente**: na subida da API, o `InicializadorBanco` executa `MigrateAsync` e cria o usuário admin.
 
 Opcional (CLI):
 
@@ -629,19 +730,19 @@ dotnet ef database update --project src/SistemaTarefas.Infrastructure --startup-
 
 ### ▶️ Passo 5: Executar a API
 
-**Opção A — Visual Studio (recomendado)**
+**Opção A: Visual Studio (recomendado)**
 
 1. Abrir `SistemaTarefas.sln`
 2. Startup project: **SistemaTarefas.Api**
 3. **F5**
 
-**Opção B — CLI**
+**Opção B: CLI**
 
 ```bash
 dotnet run --project src/SistemaTarefas.Api
 ```
 
-**Opção C — Docker (API + MySQL)**
+**Opção C: Docker (API + MySQL)**
 
 ```bash
 docker compose up --build
@@ -664,13 +765,13 @@ Swagger na raiz. Login: POST /api/v1/auth/login
 
 ### 🧪 Passo 6: Executar os testes automatizados
 
-**Via .NET CLI (rápido — sem integração):**
+**Via .NET CLI (rápido: sem integração):**
 
 ```bash
 dotnet test --filter "Category!=Integration"
 ```
 
-**Suite completa (inclui integração — Docker Desktop ligado):**
+**Suite completa (inclui integração: Docker Desktop ligado):**
 
 ```bash
 dotnet test
@@ -681,22 +782,22 @@ dotnet test
 1. Menu **Teste** → **Gerenciador de Testes** (ou `Ctrl+E, T`)
 2. **Executar** todos (`Ctrl+R, A`)
 
-**Resultado esperado:** 13 testes aprovados, 0 falhas (12 unitários/arquitetura + 1 integração).
+**Resultado esperado:** 15 testes aprovados, 0 falhas (12 unitários/arquitetura + 3 integração).
 
 ---
 
 ## 🧪 Testes Automatizados
 
-A solution possui **4 projetos de teste** (visíveis no **Gerenciador de Testes** do Visual Studio). Eles validam camadas diferentes — não substituem o roteiro manual no Swagger (Fases 1–4 abaixo), mas provam regras de negócio, arquitetura e um fluxo ponta a ponta.
+A solution possui **4 projetos de teste** (visíveis no **Gerenciador de Testes** do Visual Studio). Eles validam camadas diferentes: complementam o [roteiro manual resumido](#-testes-manuais-via-swagger-ou-postman) no Swagger, provando regras de negócio, arquitetura e fluxo HTTP ponta a ponta.
 
 ### Visão geral
 
 | Projeto | Qtd. | O que garante |
 |---------|------|----------------|
-| `SistemaTarefas.Domain.Tests` | 8 | **TDD do domínio** — agregado `Tarefa`, título/descrição, vencimento futuro, transições (iniciar, concluir, reabrir). Sem HTTP e sem banco. |
-| `SistemaTarefas.Application.Tests` | 2 | **Use case** `CriarTarefaUseCase` — validação de entrada e chamada ao `CommitAsync` (Moq). |
-| `SistemaTarefas.Architecture.Tests` | 2 | **NetArchTest** — Domain não referencia Application/Infrastructure/Api; Application não referencia Infrastructure/Api. |
-| `SistemaTarefas.Api.IntegrationTests` | 1 | **Integração** — sobe MySQL em container (Testcontainers), faz login e cria tarefa via HTTP real. |
+| `SistemaTarefas.Domain.Tests` | 8 | **TDD do domínio**: agregado `Tarefa`, título/descrição, vencimento futuro, transições (iniciar, concluir, reabrir). Sem HTTP e sem banco. |
+| `SistemaTarefas.Application.Tests` | 2 | **Use case** `CriarTarefaUseCase`: validação de entrada e chamada ao `CommitAsync` (Moq). |
+| `SistemaTarefas.Architecture.Tests` | 2 | **NetArchTest**: Domain não referencia Application/Infrastructure/Api; Application não referencia Infrastructure/Api. |
+| `SistemaTarefas.Api.IntegrationTests` | 3 | **Integração**: Testcontainers (MySQL) + `WebApplicationFactory`: login/criar tarefa, PUT com **If-Match**, OpenAPI expõe header **If-Match** no Swagger. |
 
 ### Exemplos de testes (Domain)
 
@@ -711,9 +812,13 @@ A solution possui **4 projetos de teste** (visíveis no **Gerenciador de Testes*
 - `Domain_NaoDeveDependerDeOutrasCamadas`
 - `Application_NaoDeveDependerDeInfrastructureNemApi`
 
-### Exemplo (Integração)
+### Exemplos (Integração)
 
-- `Login_E_CriarTarefa_DeveFuncionar` — exige **Docker** em execução (container MySQL efêmero).
+- `Login_E_CriarTarefa_DeveFuncionar`: auth + POST tarefa (HTTP real).
+- `AtualizarTarefa_ComIfMatch_DeveRetornarOk`: PUT com header de versão.
+- `OpenApi_PutTarefas_DeveIncluirHeaderIfMatch`: contrato Swagger/OpenAPI.
+
+Todos os testes de integração usam `[Trait("Category", "Integration")]` e exigem **Docker** em execução.
 
 ### Quando usar cada comando
 
@@ -745,345 +850,55 @@ Ferramentas: **xUnit**, **Moq**, **FluentAssertions**, **NetArchTest.Rules**, **
 
 ## 🧪 Testes Manuais via Swagger ou Postman
 
-Roteiro completo para validar a API em **fases**: autenticação → CRUD → regras de negócio → autorização.
+Use o **Swagger na raiz** (local `http://localhost:5000` ou [demo hospedada](#-teste-rápido-api-hospedada-swagger)): login → **Authorize** (`Bearer {token}`) → exercitar rotas da tabela [Endpoints da API](#-endpoints-da-api).
 
-**Configuração global:**
-
-- **Base URL:** `http://localhost:5000`
-- **Content-Type:** `application/json`
-- **Authorization (fases 2+):** `Bearer {{token}}`
-
----
-
-## 🔐 FASE 1: Autenticação
-
-### ✅ Teste 1.1: Login com sucesso
-
-```http
-POST http://localhost:5000/api/v1/auth/login
-Content-Type: application/json
-
-{
-  "nomeUsuario": "admin",
-  "senha": "Admin123"
-}
-```
-
-**Resposta esperada:** `200 OK`
+**Corpos mínimos (local: admin / Admin123):**
 
 ```json
-{
-  "sucesso": true,
-  "mensagem": "Login realizado com sucesso",
-  "dados": {
-    "token": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-    "refreshToken": "...",
-    "expiraEm": "2026-10-24T23:00:00Z"
-  },
-  "erros": null,
-  "traceId": "..."
-}
+// POST /api/v1/auth/login
+{ "nomeUsuario": "admin", "senha": "Admin123" }
+
+// POST /api/v1/tarefas (autenticado)
+{ "titulo": "Minha tarefa", "descricao": "Opcional", "dataVencimento": "2026-12-15T18:00:00Z" }
 ```
 
-**Validações:**
+Em **PUT**, **DELETE** e **POST** `.../iniciar|concluir|reabrir`, informe **`If-Match`** = campo **`versao`** (ou ETag do GET). Ver [Teste rápido](#-teste-rápido-api-hospedada-swagger).
 
-- Status 200, `sucesso: true`, `dados.token` preenchido
-- **Swagger:** botão **Authorize** → informar `Bearer {token}` (com a palavra Bearer)
+Respostas de erro vêm em `RespostaPadrao` (`sucesso: false`, `mensagem`, `erros`, `traceId`). Use `traceId` para achar a linha nos logs (Serilog + use case).
 
-**Ação:** salvar `dados.token` como `{{token}}` no Postman ou usar no Authorize do Swagger.
+### Autenticação e registro
 
----
+| Cenário | O que fazer no Swagger | Sucesso | Erros comuns |
+|---------|------------------------|---------|--------------|
+| Login | `POST /api/v1/auth/login` com JSON acima | **200** + `dados.token` | **401** usuário/senha errados; **400** campos vazios |
+| Registrar | `POST /api/v1/auth/registrar` (usuário novo) | **200** | **409** nome já existe; **400** senha fraca ou inválida |
+| Refresh | `POST /api/v1/auth/refresh` com `refreshToken` do login | **200** novo par de tokens | **401** token ausente, expirado ou revogado |
 
-### ❌ Teste 1.2: Login com usuário inexistente
+### Tarefas (CRUD e consultas)
 
-```http
-POST http://localhost:5000/api/v1/auth/login
-Content-Type: application/json
+| Cenário | O que fazer | Sucesso | Erros comuns |
+|---------|-------------|---------|--------------|
+| Criar | `POST /api/v1/tarefas` (Authorize ativo) | **201** + `versao` (geralmente `1`) | **401** sem token; **400** título curto ou data inválida |
+| Listar / obter | `GET /api/v1/tarefas`, `GET /api/v1/tarefas/{id}` | **200** | **401** sem token; **404** id inexistente ou de outro usuário |
+| Atualizar | `PUT /api/v1/tarefas/{id}` + header **If-Match** | **200** + `versao` incrementada | **428** sem If-Match; **400** If-Match não numérico; **409** versão desatualizada; **400** validação/domínio |
+| Excluir | `DELETE /api/v1/tarefas/{id}` + **If-Match** | **200** (soft delete) | Mesmos **428** / **409** do PUT |
+| Histórico | `GET /api/v1/tarefas/{id}/historico` | **200** lista de auditoria | **404** mesma regra do GET por id |
 
-{
-  "nomeUsuario": "nao_existe",
-  "senha": "Admin123"
-}
-```
+### Status da tarefa
 
-**Resposta esperada:** `401 Unauthorized` — `sucesso: false`, mensagem de credenciais inválidas.
+| Cenário | O que fazer | Sucesso | Erros comuns |
+|---------|-------------|---------|--------------|
+| Fluxo feliz | `POST .../iniciar` → `.../concluir` → `.../reabrir` (If-Match atualizado a cada passo) | **200** em cada etapa | **400** transição inválida (ex.: concluir sem iniciar); **409** versão errada |
+| Concluir direto | `POST .../concluir` com tarefa ainda **Pendente** | N/A | **400** (só conclui em **EmAndamento**) |
 
----
+### Segurança HTTP
 
-### ❌ Teste 1.3: Login com senha incorreta
+| Cenário | O que fazer | Sucesso | Erros comuns |
+|---------|-------------|---------|--------------|
+| Rota protegida | `GET /api/v1/tarefas` sem **Authorize** | N/A | **401** |
+| Token inválido | Authorize com texto aleatório | N/A | **401** |
 
-```http
-POST http://localhost:5000/api/v1/auth/login
-Content-Type: application/json
-
-{
-  "nomeUsuario": "admin",
-  "senha": "senha_errada"
-}
-```
-
-**Resposta esperada:** `401 Unauthorized`
-
----
-
-### ❌ Teste 1.4: Login com campos vazios
-
-```http
-POST http://localhost:5000/api/v1/auth/login
-Content-Type: application/json
-
-{
-  "nomeUsuario": "",
-  "senha": ""
-}
-```
-
-**Resposta esperada:** `400 Bad Request` — erros de validação FluentValidation.
-
----
-
-### ✅ Teste 1.5: Registrar novo usuário
-
-```http
-POST http://localhost:5000/api/v1/auth/registrar
-Content-Type: application/json
-
-{
-  "nomeUsuario": "usuario_teste",
-  "senha": "Senha1234"
-}
-```
-
-**Resposta esperada:** `200 OK` — `mensagem`: usuário registrado.
-
-> Senha: mínimo 8 caracteres, ao menos uma letra e um número.
-
----
-
-### ❌ Teste 1.6: Registrar usuário duplicado
-
-```http
-POST http://localhost:5000/api/v1/auth/registrar
-Content-Type: application/json
-
-{
-  "nomeUsuario": "admin",
-  "senha": "Senha1234"
-}
-```
-
-**Resposta esperada:** `409 Conflict` — admin já existe.
-
----
-
-## 📝 FASE 2: CRUD de Tarefas
-
-> **IMPORTANTE:** Em todos os testes desta fase, use:
->
-> ```
-> Authorization: Bearer {{token}}
-> ```
-
----
-
-### ✅ Teste 2.1: Criar tarefa
-
-```http
-POST http://localhost:5000/api/v1/tarefas
-Authorization: Bearer {{token}}
-Content-Type: application/json
-
-{
-  "titulo": "Enviar documentação",
-  "descricao": "README e fluxos",
-  "dataVencimento": "2026-12-15T18:00:00Z"
-}
-```
-
-**Resposta esperada:** `201 Created`
-
-- `dados.status` = `Pendente`
-- Header **ETag** com a versão (ex.: `"1"`)
-
-**Ação:** guardar `dados.id` como `{{tarefaId}}` e o **ETag** como `{{versao}}`.
-
----
-
-### ✅ Teste 2.2: Listar tarefas (filtro status)
-
-```http
-GET http://localhost:5000/api/v1/tarefas?status=Pendente&pagina=1&tamanho=20
-Authorization: Bearer {{token}}
-```
-
-**Resposta esperada:** `200 OK` — `dados.itens` com paginação (`total`, `pagina`, `tamanho`).
-
----
-
-### ✅ Teste 2.3: Buscar tarefa por ID
-
-```http
-GET http://localhost:5000/api/v1/tarefas/{{tarefaId}}
-Authorization: Bearer {{token}}
-```
-
-**Resposta esperada:** `200 OK` + header **ETag**.
-
----
-
-### ❌ Teste 2.4: Buscar tarefa inexistente
-
-```http
-GET http://localhost:5000/api/v1/tarefas/00000000-0000-0000-0000-000000000000
-Authorization: Bearer {{token}}
-```
-
-**Resposta esperada:** `404 Not Found`
-
----
-
-### ✅ Teste 2.5: Atualizar tarefa (com If-Match)
-
-```http
-PUT http://localhost:5000/api/v1/tarefas/{{tarefaId}}
-Authorization: Bearer {{token}}
-If-Match: {{versao}}
-Content-Type: application/json
-
-{
-  "titulo": "Enviar documentação (revisada)",
-  "descricao": "README completo",
-  "dataVencimento": "2026-12-20T18:00:00Z"
-}
-```
-
-**Resposta esperada:** `200 OK` — nova versão no corpo; atualizar `{{versao}}` pelo novo ETag.
-
----
-
-### ❌ Teste 2.6: Atualizar sem If-Match
-
-```http
-PUT http://localhost:5000/api/v1/tarefas/{{tarefaId}}
-Authorization: Bearer {{token}}
-Content-Type: application/json
-
-{
-  "titulo": "Sem versao",
-  "descricao": "Teste",
-  "dataVencimento": "2026-12-20T18:00:00Z"
-}
-```
-
-**Resposta esperada:** `428 Precondition Required`
-
----
-
-### ❌ Teste 2.7: Criar tarefa com título inválido (curto)
-
-```http
-POST http://localhost:5000/api/v1/tarefas
-Authorization: Bearer {{token}}
-Content-Type: application/json
-
-{
-  "titulo": "ab",
-  "descricao": "Teste",
-  "dataVencimento": "2026-12-15T18:00:00Z"
-}
-```
-
-**Resposta esperada:** `400` ou `422` — regra de domínio/validação.
-
----
-
-## 🔄 FASE 3: Status e histórico
-
-### ✅ Teste 3.1: Iniciar tarefa
-
-```http
-POST http://localhost:5000/api/v1/tarefas/{{tarefaId}}/iniciar
-Authorization: Bearer {{token}}
-If-Match: {{versao}}
-```
-
-**Resposta esperada:** `200 OK` — `dados.status` = `EmAndamento`.
-
----
-
-### ✅ Teste 3.2: Concluir tarefa
-
-```http
-POST http://localhost:5000/api/v1/tarefas/{{tarefaId}}/concluir
-Authorization: Bearer {{token}}
-If-Match: {{versao}}
-```
-
-**Resposta esperada:** `200 OK` — `dados.status` = `Concluido`, `dataConclusao` preenchida.
-
----
-
-### ✅ Teste 3.3: Reabrir tarefa
-
-```http
-POST http://localhost:5000/api/v1/tarefas/{{tarefaId}}/reabrir
-Authorization: Bearer {{token}}
-If-Match: {{versao}}
-```
-
-**Resposta esperada:** `200 OK` — status volta para `Pendente`.
-
----
-
-### ❌ Teste 3.4: Concluir tarefa ainda pendente (sem iniciar)
-
-Crie outra tarefa e tente `POST .../concluir` direto — **400/422** (só conclui em andamento).
-
----
-
-### ✅ Teste 3.5: Histórico da tarefa
-
-```http
-GET http://localhost:5000/api/v1/tarefas/{{tarefaId}}/historico
-Authorization: Bearer {{token}}
-```
-
-**Resposta esperada:** `200 OK` — lista de eventos/auditoria.
-
----
-
-### ✅ Teste 3.6: Excluir tarefa (soft delete)
-
-```http
-DELETE http://localhost:5000/api/v1/tarefas/{{tarefaId}}
-Authorization: Bearer {{token}}
-If-Match: {{versao}}
-```
-
-**Resposta esperada:** `200 OK` — tarefa removida logicamente.
-
----
-
-## 🔒 FASE 4: Autorização
-
-### ❌ Teste 4.1: Listar tarefas sem token
-
-```http
-GET http://localhost:5000/api/v1/tarefas
-```
-
-**Resposta esperada:** `401 Unauthorized`
-
----
-
-### ❌ Teste 4.2: Token inválido
-
-```http
-GET http://localhost:5000/api/v1/tarefas
-Authorization: Bearer token_invalido
-```
-
-**Resposta esperada:** `401 Unauthorized`
+Mais combinações de **400**/**401** podem ser exploradas no Swagger. A suíte **`dotnet test`** cobre domínio, arquitetura, PUT com If-Match e contrato OpenAPI do header.
 
 ---
 
@@ -1182,11 +997,12 @@ Authorization: Bearer token_invalido
 | Login 412 / concorrência | Rebuild com API parada (versão antiga em memória) |
 | Authorize não funciona | Use `Bearer {token}` no Swagger |
 | PUT/iniciar retorna 428 | Envie header `If-Match` com o número **`versao`** (ex.: `1`) ou ETag do GET |
-| **400** If-Match inválido | Não use **`traceId`** — só o campo **`versao`** do JSON ou ETag (ex.: `1`) |
+| **400** If-Match inválido | Não use **`traceId`**. Use só o campo **`versao`** do JSON ou ETag (ex.: `1`) |
+| Entender falha além do JSON | Console local ou **Logs** no Render: Serilog (HTTP) + linhas `LogWarning` dos use cases; use `traceId` da resposta na mesma janela de tempo |
 | Build falha (DLL locked) | Pare o debug no Visual Studio antes de compilar |
 
 ---
 
 ## 🌐 Demo hospedada
 
-API no **Render** (Docker) com MySQL na nuvem. Links e roteiro: [Teste rápido — API hospedada](#-teste-rápido--api-hospedada-swagger).
+API no **Render** (Docker) com MySQL na nuvem. Links e roteiro: [Teste rápido: API hospedada](#-teste-rápido-api-hospedada-swagger).

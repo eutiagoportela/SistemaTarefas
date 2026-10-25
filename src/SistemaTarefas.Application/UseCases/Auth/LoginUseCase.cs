@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.Extensions.Logging;
 using SistemaTarefas.Application.Abstracoes;
 using SistemaTarefas.Communication.Requests;
 using SistemaTarefas.Communication.Responses;
@@ -21,6 +22,7 @@ public sealed class LoginUseCase : ILoginUseCase
     private readonly ITokenService _tokens;
     private readonly IValidator<RequestLogin> _validator;
     private readonly TimeProvider _relogio;
+    private readonly ILogger<LoginUseCase> _logger;
 
     public LoginUseCase(
         IUsuarioRepository usuarios,
@@ -28,7 +30,8 @@ public sealed class LoginUseCase : ILoginUseCase
         IPasswordHasher hasher,
         ITokenService tokens,
         IValidator<RequestLogin> validator,
-        TimeProvider relogio)
+        TimeProvider relogio,
+        ILogger<LoginUseCase> logger)
     {
         _usuarios = usuarios;
         _uow = uow;
@@ -36,6 +39,7 @@ public sealed class LoginUseCase : ILoginUseCase
         _tokens = tokens;
         _validator = validator;
         _relogio = relogio;
+        _logger = logger;
     }
 
     public async Task<Resultado<LoginResponse>> Execute(RequestLogin request, CancellationToken cancellationToken)
@@ -43,12 +47,17 @@ public sealed class LoginUseCase : ILoginUseCase
         var validacao = await _validator.ValidateAsync(request, cancellationToken);
         if (!validacao.IsValid)
         {
-            return Resultado<LoginResponse>.Validacao("Erros de validação", validacao.Errors.Select(e => e.ErrorMessage).ToList());
+            var erros = validacao.Errors.Select(e => e.ErrorMessage).ToList();
+            _logger.LogWarning("Dados inválidos ao realizar login: {Erros}", string.Join(", ", erros));
+            return Resultado<LoginResponse>.Validacao("Erros de validação", erros);
         }
+
+        _logger.LogInformation("Tentativa de login: {NomeUsuario}", request.NomeUsuario);
 
         var usuario = await _usuarios.ObterPorNomeAsync(request.NomeUsuario, cancellationToken);
         if (usuario is null || !_hasher.Verificar(request.Senha, usuario.SenhaHash))
         {
+            _logger.LogWarning("Credenciais inválidas para usuário {NomeUsuario}", request.NomeUsuario);
             return Resultado<LoginResponse>.NaoAutorizado("Credenciais inválidas");
         }
 
@@ -58,6 +67,8 @@ public sealed class LoginUseCase : ILoginUseCase
             RefreshToken.Criar(usuario.Id, _tokens.HashRefreshToken(refresh), expira.AddDays(7), _relogio),
             cancellationToken);
         await _uow.CommitAsync(cancellationToken);
+
+        _logger.LogInformation("Login realizado com sucesso: {NomeUsuario}", request.NomeUsuario);
 
         return Resultado<LoginResponse>.Ok(new LoginResponse
         {

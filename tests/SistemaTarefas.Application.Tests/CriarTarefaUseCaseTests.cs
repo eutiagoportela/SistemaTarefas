@@ -1,5 +1,6 @@
 using FluentAssertions;
 using FluentValidation;
+using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SistemaTarefas.Application.Abstracoes;
 using SistemaTarefas.Application.UseCases.Tarefas;
@@ -51,6 +52,12 @@ public class CriarTarefaUseCaseTests
         var usuario = new Mock<IUsuarioAtual>();
         usuario.SetupGet(x => x.Id).Returns(Guid.NewGuid());
         IValidator<RequestCriarTarefa> validator = new RequestCriarTarefaValidator();
-        return new CriarTarefaUseCase(repo.Object, uow.Object, usuario.Object, validator, TimeProvider.System);
+        return new CriarTarefaUseCase(
+            repo.Object,
+            uow.Object,
+            usuario.Object,
+            validator,
+            TimeProvider.System,
+            NullLogger<CriarTarefaUseCase>.Instance);
     }
 }

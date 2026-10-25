@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.Extensions.Logging;
 using SistemaTarefas.Application.Abstracoes;
 using SistemaTarefas.Application.Mapeamentos;
 using SistemaTarefas.Communication.Requests;
@@ -22,19 +23,22 @@ public sealed class CriarTarefaUseCase : ICriarTarefaUseCase
     private readonly IUsuarioAtual _usuario;
     private readonly IValidator<RequestCriarTarefa> _validator;
     private readonly TimeProvider _relogio;
+    private readonly ILogger<CriarTarefaUseCase> _logger;
 
     public CriarTarefaUseCase(
         ITarefaRepository tarefas,
         IUnitOfWork uow,
         IUsuarioAtual usuario,
         IValidator<RequestCriarTarefa> validator,
-        TimeProvider relogio)
+        TimeProvider relogio,
+        ILogger<CriarTarefaUseCase> logger)
     {
         _tarefas = tarefas;
         _uow = uow;
         _usuario = usuario;
         _validator = validator;
         _relogio = relogio;
+        _logger = logger;
     }
 
     public async Task<Resultado<TarefaResponse>> Execute(RequestCriarTarefa request, CancellationToken cancellationToken)
@@ -42,7 +46,9 @@ public sealed class CriarTarefaUseCase : ICriarTarefaUseCase
         var validacao = await _validator.ValidateAsync(request, cancellationToken);
         if (!validacao.IsValid)
         {
-            return Resultado<TarefaResponse>.Validacao("Erros de validação", validacao.Errors.Select(e => e.ErrorMessage).ToList());
+            var erros = validacao.Errors.Select(e => e.ErrorMessage).ToList();
+            _logger.LogWarning("Dados inválidos ao criar tarefa: {Erros}", string.Join(", ", erros));
+            return Resultado<TarefaResponse>.Validacao("Erros de validação", erros);
         }
 
         try
@@ -54,6 +60,7 @@ public sealed class CriarTarefaUseCase : ICriarTarefaUseCase
         }
         catch (DomainException ex)
         {
+            _logger.LogWarning("Regra de domínio ao criar tarefa: {Mensagem}", ex.Message);
             return Resultado<TarefaResponse>.Validacao(ex.Message);
         }
     }

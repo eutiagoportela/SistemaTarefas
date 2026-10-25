@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.Extensions.Logging;
 using SistemaTarefas.Application.Abstracoes;
 using SistemaTarefas.Application.Mapeamentos;
 using SistemaTarefas.Communication.Requests;
@@ -44,6 +45,7 @@ public sealed class ComandosTarefaUseCase :
     private readonly IAuditoriaConsulta _auditoria;
     private readonly IValidator<RequestAtualizarTarefa> _validator;
     private readonly TimeProvider _relogio;
+    private readonly ILogger<ComandosTarefaUseCase> _logger;
 
     public ComandosTarefaUseCase(
         ITarefaRepository tarefas,
@@ -51,7 +53,8 @@ public sealed class ComandosTarefaUseCase :
         IUsuarioAtual usuario,
         IAuditoriaConsulta auditoria,
         IValidator<RequestAtualizarTarefa> validator,
-        TimeProvider relogio)
+        TimeProvider relogio,
+        ILogger<ComandosTarefaUseCase> logger)
     {
         _tarefas = tarefas;
         _uow = uow;
@@ -59,6 +62,7 @@ public sealed class ComandosTarefaUseCase :
         _auditoria = auditoria;
         _validator = validator;
         _relogio = relogio;
+        _logger = logger;
     }
 
     public async Task<Resultado<TarefaResponse>> Execute(
@@ -70,7 +74,9 @@ public sealed class ComandosTarefaUseCase :
         var validacao = await _validator.ValidateAsync(request, cancellationToken);
         if (!validacao.IsValid)
         {
-            return Resultado<TarefaResponse>.Validacao("Erros de validação", validacao.Errors.Select(e => e.ErrorMessage).ToList());
+            var erros = validacao.Errors.Select(e => e.ErrorMessage).ToList();
+            _logger.LogWarning("Dados inválidos ao atualizar tarefa {TarefaId}: {Erros}", id, string.Join(", ", erros));
+            return Resultado<TarefaResponse>.Validacao("Erros de validação", erros);
         }
 
         return await Executar(id, versaoEsperada, t => t.AtualizarDetalhes(request.Titulo, request.Descricao, request.DataVencimento, _relogio), cancellationToken);
@@ -113,6 +119,11 @@ public sealed class ComandosTarefaUseCase :
 
         if (tarefa.Versao != versao)
         {
+            _logger.LogWarning(
+                "Conflito de versão na tarefa {TarefaId}: esperada {VersaoEsperada}, atual {VersaoAtual}",
+                id,
+                versao,
+                tarefa.Versao);
             return Resultado<TarefaResponse>.Conflito("A tarefa foi alterada por outra requisição. Recarregue e tente novamente.");
         }
 
@@ -124,6 +135,7 @@ public sealed class ComandosTarefaUseCase :
         }
         catch (DomainException ex)
         {
+            _logger.LogWarning("Regra de domínio na tarefa {TarefaId}: {Mensagem}", id, ex.Message);
             return Resultado<TarefaResponse>.Validacao(ex.Message);
         }
     }
@@ -131,8 +143,15 @@ public sealed class ComandosTarefaUseCase :
     private async Task<Tarefa?> ObterAutorizada(Guid id, CancellationToken cancellationToken)
     {
         var tarefa = await _tarefas.ObterPorIdAsync(id, cancellationToken);
-        if (tarefa is null || (!_usuario.IsAdmin && tarefa.UsuarioId != _usuario.Id))
+        if (tarefa is null)
         {
+            _logger.LogWarning("Tarefa não encontrada: {TarefaId}", id);
+            return null;
+        }
+
+        if (!_usuario.IsAdmin && tarefa.UsuarioId != _usuario.Id)
+        {
+            _logger.LogWarning("Acesso negado à tarefa {TarefaId} (usuário {UsuarioId})", id, _usuario.Id);
             return null;
         }
 

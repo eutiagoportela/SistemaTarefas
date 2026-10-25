@@ -1,4 +1,5 @@
 using FluentValidation;
+using Microsoft.Extensions.Logging;
 using SistemaTarefas.Application.Abstracoes;
 using SistemaTarefas.Communication.Requests;
 using SistemaTarefas.Domain.Entidades;
@@ -20,19 +21,22 @@ public sealed class RegistrarUsuarioUseCase : IRegistrarUsuarioUseCase
     private readonly IPasswordHasher _hasher;
     private readonly IValidator<RequestRegistrar> _validator;
     private readonly TimeProvider _relogio;
+    private readonly ILogger<RegistrarUsuarioUseCase> _logger;
 
     public RegistrarUsuarioUseCase(
         IUsuarioRepository usuarios,
         IUnitOfWork uow,
         IPasswordHasher hasher,
         IValidator<RequestRegistrar> validator,
-        TimeProvider relogio)
+        TimeProvider relogio,
+        ILogger<RegistrarUsuarioUseCase> logger)
     {
         _usuarios = usuarios;
         _uow = uow;
         _hasher = hasher;
         _validator = validator;
         _relogio = relogio;
+        _logger = logger;
     }
 
     public async Task<Resultado> Execute(RequestRegistrar request, CancellationToken cancellationToken)
@@ -40,12 +44,15 @@ public sealed class RegistrarUsuarioUseCase : IRegistrarUsuarioUseCase
         var validacao = await _validator.ValidateAsync(request, cancellationToken);
         if (!validacao.IsValid)
         {
-            return Resultado.Validacao("Erros de validação", validacao.Errors.Select(e => e.ErrorMessage).ToList());
+            var erros = validacao.Errors.Select(e => e.ErrorMessage).ToList();
+            _logger.LogWarning("Dados inválidos ao registrar usuário: {Erros}", string.Join(", ", erros));
+            return Resultado.Validacao("Erros de validação", erros);
         }
 
         var existente = await _usuarios.ObterPorNomeAsync(request.NomeUsuario, cancellationToken);
         if (existente is not null)
         {
+            _logger.LogWarning("Tentativa de registro com usuário já existente: {NomeUsuario}", request.NomeUsuario);
             return Resultado.Conflito($"O usuário '{request.NomeUsuario}' já está cadastrado.");
         }
 
