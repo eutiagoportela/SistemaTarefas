@@ -12,10 +12,15 @@ namespace SistemaTarefas.Api.Controllers;
 [Route("api/v1/auth")]
 public sealed class AuthController : ControllerBase
 {
-    /// <summary>Registra um novo usuário.</summary>
+    /// <summary>
+    /// Registra um novo usuário.
+    /// </summary>
     [AllowAnonymous]
     [HttpPost("registrar")]
     [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Registrar(
         [FromServices] IRegistrarUsuarioUseCase useCase,
         [FromBody] RequestRegistrar request,
@@ -25,11 +30,16 @@ public sealed class AuthController : ControllerBase
         return resultado.ParaHttp(HttpContext, "Usuário registrado com sucesso");
     }
 
-    /// <summary>Realiza login e retorna um token JWT.</summary>
+    /// <summary>
+    /// Realiza login e retorna um token JWT.
+    /// </summary>
     [AllowAnonymous]
     [EnableRateLimiting("login")]
     [HttpPost("login")]
     [ProducesResponseType(typeof(RespostaPadrao<LoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RespostaPadrao<LoginResponse>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RespostaPadrao<LoginResponse>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(RespostaPadrao<LoginResponse>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Login(
         [FromServices] ILoginUseCase useCase,
         [FromBody] RequestLogin request,
@@ -39,10 +49,16 @@ public sealed class AuthController : ControllerBase
         return resultado.ParaHttp(HttpContext, "Login realizado com sucesso");
     }
 
-    /// <summary>Renova o access token.</summary>
+    /// <summary>
+    /// Renova o access token usando o refresh token.
+    /// </summary>
     [AllowAnonymous]
     [EnableRateLimiting("login")]
     [HttpPost("refresh")]
+    [ProducesResponseType(typeof(RespostaPadrao<LoginResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RespostaPadrao<LoginResponse>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RespostaPadrao<LoginResponse>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(RespostaPadrao<LoginResponse>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Refresh(
         [FromServices] IRefreshTokenUseCase useCase,
         [FromBody] RequestRefresh request,
@@ -52,8 +68,14 @@ public sealed class AuthController : ControllerBase
         return resultado.ParaHttp(HttpContext, "Token renovado");
     }
 
+    /// <summary>
+    /// Encerra a sessão no cliente (descarte o token JWT).
+    /// </summary>
     [Authorize]
     [HttpPost("logout")]
+    [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status500InternalServerError)]
     public IActionResult Logout()
         => Ok(RespostaPadrao<object>.ComSucesso(null, "Logout realizado. Descarte o token no cliente.", HttpContext.TraceIdentifier));
 }

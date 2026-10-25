@@ -12,14 +12,20 @@ using SistemaTarefas.Domain.Enums;
 
 namespace SistemaTarefas.Api.Controllers;
 
+/// <summary>Gestão de tarefas (ToDo) — requer JWT.</summary>
 [Authorize]
 [ApiController]
 [Route("api/v1/tarefas")]
 public sealed class TarefasController : ControllerBase
 {
-    /// <summary>Cria uma tarefa.</summary>
+    /// <summary>
+    /// Cria uma tarefa. Header opcional Idempotency-Key. Resposta inclui ETag (versão).
+    /// </summary>
     [HttpPost]
     [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status201Created)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Criar(
         [FromServices] ICriarTarefaUseCase useCase,
         [FromServices] IIdempotenciaStore idempotencia,
@@ -53,8 +59,14 @@ public sealed class TarefasController : ControllerBase
         return resposta;
     }
 
-    /// <summary>Lista tarefas com filtros e paginação.</summary>
+    /// <summary>
+    /// Lista tarefas com filtros, paginação e ordenação.
+    /// </summary>
     [HttpGet]
+    [ProducesResponseType(typeof(RespostaPadrao<RespostaPaginada<TarefaResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RespostaPadrao<RespostaPaginada<TarefaResponse>>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RespostaPadrao<RespostaPaginada<TarefaResponse>>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(RespostaPadrao<RespostaPaginada<TarefaResponse>>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Listar(
         [FromServices] IListarTarefasUseCase useCase,
         [FromQuery] StatusTarefa? status,
@@ -74,7 +86,14 @@ public sealed class TarefasController : ControllerBase
         return resultado.ParaHttp(HttpContext, "Tarefas listadas");
     }
 
+    /// <summary>
+    /// Obtém uma tarefa por ID. Resposta inclui header ETag (versão para If-Match).
+    /// </summary>
     [HttpGet("{id:guid}")]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Obter(
         [FromServices] IObterTarefaUseCase useCase,
         Guid id,
@@ -89,7 +108,18 @@ public sealed class TarefasController : ControllerBase
         return resultado.ParaHttp(HttpContext, "Tarefa encontrada");
     }
 
+    /// <summary>
+    /// Atualiza título, descrição e vencimento. Requer header If-Match com a versão (ETag).
+    /// </summary>
     [HttpPut("{id:guid}")]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status412PreconditionFailed)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Atualizar(
         [FromServices] IAtualizarTarefaUseCase useCase,
         Guid id,
@@ -105,19 +135,62 @@ public sealed class TarefasController : ControllerBase
         return resultado.ParaHttp(HttpContext, "Tarefa atualizada");
     }
 
+    /// <summary>
+    /// Inicia a tarefa (Pendente → Em andamento). Requer If-Match.
+    /// </summary>
     [HttpPost("{id:guid}/iniciar")]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status412PreconditionFailed)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status500InternalServerError)]
     public Task<IActionResult> Iniciar([FromServices] IAlterarStatusTarefaUseCase useCase, Guid id, CancellationToken ct)
         => ExecutarComando(id, (v) => useCase.Iniciar(id, v, ct));
 
+    /// <summary>
+    /// Conclui a tarefa (Em andamento → Concluído). Requer If-Match.
+    /// </summary>
     [HttpPost("{id:guid}/concluir")]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status412PreconditionFailed)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status500InternalServerError)]
     public Task<IActionResult> Concluir([FromServices] IAlterarStatusTarefaUseCase useCase, Guid id, CancellationToken ct)
         => ExecutarComando(id, (v) => useCase.Concluir(id, v, ct));
 
+    /// <summary>
+    /// Reabre a tarefa (Concluído → Pendente). Requer If-Match.
+    /// </summary>
     [HttpPost("{id:guid}/reabrir")]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status400BadRequest)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status412PreconditionFailed)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status500InternalServerError)]
     public Task<IActionResult> Reabrir([FromServices] IAlterarStatusTarefaUseCase useCase, Guid id, CancellationToken ct)
         => ExecutarComando(id, (v) => useCase.Reabrir(id, v, ct));
 
+    /// <summary>
+    /// Exclui a tarefa (soft delete). Requer If-Match.
+    /// </summary>
     [HttpDelete("{id:guid}")]
+    [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status409Conflict)]
+    [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status412PreconditionFailed)]
+    [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status428PreconditionRequired)]
+    [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Remover(
         [FromServices] IRemoverTarefaUseCase useCase,
         Guid id,
@@ -132,7 +205,14 @@ public sealed class TarefasController : ControllerBase
         return resultado.ParaHttp(HttpContext, "Tarefa excluída com sucesso");
     }
 
+    /// <summary>
+    /// Obtém o histórico de auditoria da tarefa.
+    /// </summary>
     [HttpGet("{id:guid}/historico")]
+    [ProducesResponseType(typeof(RespostaPadrao<List<HistoricoResponse>>), StatusCodes.Status200OK)]
+    [ProducesResponseType(typeof(RespostaPadrao<List<HistoricoResponse>>), StatusCodes.Status401Unauthorized)]
+    [ProducesResponseType(typeof(RespostaPadrao<List<HistoricoResponse>>), StatusCodes.Status404NotFound)]
+    [ProducesResponseType(typeof(RespostaPadrao<List<HistoricoResponse>>), StatusCodes.Status500InternalServerError)]
     public async Task<IActionResult> Historico(
         [FromServices] IObterHistoricoTarefaUseCase useCase,
         Guid id,

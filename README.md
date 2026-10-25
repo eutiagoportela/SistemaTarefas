@@ -27,6 +27,7 @@ API RESTful para gerenciamento de tarefas, desenvolvida para o desafio técnico 
 - [Testes Manuais via Swagger ou Postman](#-testes-manuais-via-swagger-ou-postman)
 - [Estrutura do Projeto](#-estrutura-do-projeto)
 - [Solução de Problemas](#-solução-de-problemas)
+- [Demo hospedada](#-demo-hospedada)
 
 ---
 
@@ -60,6 +61,7 @@ Sistema para **criar, listar, atualizar e concluir tarefas** (ToDo), com status 
 - ✅ **Filtros do enunciado**: status, vencimento, atrasadas, busca textual
 - ✅ **Validações**: FluentValidation na Application + regras no Domain
 - ✅ **Respostas padronizadas**: envelope `RespostaPadrao` em todos os endpoints
+- ✅ **Documentação interativa**: Swagger/OpenAPI com descrições por endpoint, códigos HTTP e JWT (**Authorize**)
 - ✅ **Histórico**: trilha em `AuditoriaRegistros` a partir de eventos de domínio
 - ✅ **Seed**: usuário admin criado no primeiro startup (Development)
 - ✅ **Docker Compose**: MySQL com healthcheck; API opcional em container
@@ -1153,48 +1155,29 @@ Authorization: Bearer token_invalido
 
 ## 🌐 Demo hospedada
 
-A API sobe no **Render** (Docker) e o MySQL fica em um serviço externo (ex.: **Railway**). O arquivo `render.yaml` na raiz descreve as variáveis da API.
-
-### Passo A — MySQL na nuvem (Railway)
-
-1. Crie conta em [railway.app](https://railway.app) → **New Project** → **Add MySQL**.
-2. No serviço MySQL → **Variables** ou **Connect** → anote host, porta, usuário, senha e database.
-3. Ative **Public Networking** se o host só existir na rede interna (Render precisa alcançar o banco pela internet).
-4. Monte a connection string (ajuste os valores):
-
-```text
-Server=HOST;Port=PORTA;Database=DB;User=USER;Password=SENHA;SslMode=Required;TreatTinyAsBoolean=true
-```
-
-Se falhar SSL, teste `SslMode=Preferred`.
-
-### Passo B — API no Render
-
-1. Conta em [render.com](https://render.com) → conecte o GitHub **eutiagoportela/SistemaTarefas**.
-2. **New** → **Blueprint** → selecione o repo (usa o `render.yaml`).
-3. Preencha os secrets quando pedir:
-
-| Variável | Valor |
-|----------|--------|
-| `ConnectionStrings__Default` | string do Passo A |
-| `Seed__Admin__Senha` | senha forte para login demo (usuário **`demo`**) |
-
-4. Aguarde o deploy (build Docker). URL típica: `https://sistema-tarefas-api.onrender.com`.
-
-### Passo C — Validar
-
-1. Abra a URL → **Swagger** na raiz.
-2. `GET /health` → healthy.
-3. `POST /api/v1/auth/login` → `{ "nomeUsuario": "demo", "senha": "..." }` (senha do Passo B).
-4. **Authorize** → `Bearer {token}` → criar tarefa.
-
-**Plano free:** o serviço “dorme” após ~15 min sem uso; a primeira requisição pode demorar ~1 min.
-
-### URL pública (preencha após o deploy)
+A API está publicada no **Render** (Docker) com banco MySQL gerenciado na nuvem.
 
 | Item | Valor |
 |------|--------|
-| **Swagger** | _cole aqui a URL do Render_ |
-| **Login demo** | usuário `demo` + senha definida no Render (não commitar) |
+| **Swagger UI** | https://sistema-tarefas-api-1rdd.onrender.com |
+| **OpenAPI JSON** | https://sistema-tarefas-api-1rdd.onrender.com/swagger/v1/swagger.json |
+| **Health** | https://sistema-tarefas-api-1rdd.onrender.com/health |
+| **Login (demo online)** | usuário `demo` / senha `DemoSegura2026!` |
 
-**Local:** **F5 + MySQL Docker (3307)** ou **`docker compose up --build`** — usuário `admin` / `Admin123`.
+### Como testar (Swagger)
+
+1. Abra a **Swagger UI** (link acima). No plano free, a primeira requisição após idle pode levar ~1 min.
+2. **GET /health** → Execute → resposta **Healthy**.
+3. **POST /api/v1/auth/login** com o JSON:
+
+```json
+{
+  "nomeUsuario": "demo",
+  "senha": "DemoSegura2026!"
+}
+```
+
+4. Copie `dados.token` → botão **Authorize** → `Bearer {token}`.
+5. Teste as rotas de tarefas (ex.: **POST /api/v1/tarefas**, **GET /api/v1/tarefas**). Comandos com versão exigem **If-Match** (ETag do GET por id) — detalhes nas **Fases 2–3** deste README.
+
+Execução **local** (Docker + F5): seção [Instalação e Configuração](#-instalação-e-configuração) — usuário `admin` / `Admin123`.
