@@ -9,6 +9,7 @@ using OpenTelemetry.Trace;
 using Serilog;
 using SistemaTarefas.Api.Middlewares;
 using SistemaTarefas.Api.Seguranca;
+using SistemaTarefas.Api.Swagger;
 using SistemaTarefas.Application.Abstracoes;
 using SistemaTarefas.Application.Extensions;
 using SistemaTarefas.Communication.Responses;
@@ -99,6 +100,8 @@ if (swaggerLigado)
         {
             c.IncludeXmlComments(xml);
         }
+
+        c.OperationFilter<SwaggerHeadersOperationFilter>();
     });
 }
 

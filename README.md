@@ -1178,6 +1178,8 @@ A API está publicada no **Render** (Docker) com banco MySQL gerenciado na nuvem
 ```
 
 4. Copie `dados.token` → botão **Authorize** → `Bearer {token}`.
-5. Teste as rotas de tarefas (ex.: **POST /api/v1/tarefas**, **GET /api/v1/tarefas**). Comandos com versão exigem **If-Match** (ETag do GET por id) — detalhes nas **Fases 2–3** deste README.
+5. **POST /api/v1/tarefas** (criar) ou **GET /api/v1/tarefas** (listar) — anote o **`id`** e o número **`versao`** da tarefa (tarefa nova costuma ter `versao: 1`).
+6. Em **PUT**, **DELETE** ou **POST …/iniciar|concluir|reabrir**, preencha o header **`If-Match`** no Swagger com esse número (ex.: `1`). Também vale o valor do header **ETag** do **GET /api/v1/tarefas/{id}** (com ou sem aspas).
+7. Sem `If-Match` a API responde **428** — isso é esperado (concorrência otimista). Mais detalhes nas **Fases 2–3** deste README.
 
 Execução **local** (Docker + F5): seção [Instalação e Configuração](#-instalação-e-configuração) — usuário `admin` / `Admin123`.

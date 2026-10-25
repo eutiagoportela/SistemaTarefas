@@ -69,4 +69,38 @@ public class FluxoTarefasTests : IAsyncLifetime
 
         criar.StatusCode.Should().Be(HttpStatusCode.Created);
     }
+
+    [Fact]
+    public async Task AtualizarTarefa_ComIfMatch_DeveRetornarOk()
+    {
+        var login = await _client!.PostAsJsonAsync("/api/v1/auth/login", new { nomeUsuario = "admin", senha = "Admin123" });
+        login.EnsureSuccessStatusCode();
+        using var loginDoc = JsonDocument.Parse(await login.Content.ReadAsStringAsync());
+        var token = loginDoc.RootElement.GetProperty("dados").GetProperty("token").GetString();
+        _client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token!);
+
+        var criar = await _client.PostAsJsonAsync("/api/v1/tarefas", new
+        {
+            titulo = "Antes do PUT",
+            descricao = "Teste If-Match",
+            dataVencimento = DateTime.UtcNow.AddDays(2)
+        });
+        criar.EnsureSuccessStatusCode();
+        using var criarDoc = JsonDocument.Parse(await criar.Content.ReadAsStringAsync());
+        var dados = criarDoc.RootElement.GetProperty("dados");
+        var id = dados.GetProperty("id").GetGuid();
+        var versao = dados.GetProperty("versao").GetUInt32();
+
+        using var put = new HttpRequestMessage(HttpMethod.Put, $"/api/v1/tarefas/{id}");
+        put.Headers.TryAddWithoutValidation("If-Match", versao.ToString());
+        put.Content = JsonContent.Create(new
+        {
+            titulo = "Depois do PUT",
+            descricao = "Atualizado",
+            dataVencimento = DateTime.UtcNow.AddDays(3)
+        });
+
+        var resposta = await _client.SendAsync(put);
+        resposta.StatusCode.Should().Be(HttpStatusCode.OK);
+    }
 }

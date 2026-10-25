@@ -123,11 +123,11 @@ public sealed class TarefasController : ControllerBase
     public async Task<IActionResult> Atualizar(
         [FromServices] IAtualizarTarefaUseCase useCase,
         Guid id,
-        [FromBody] RequestAtualizarTarefa request,
         [FromHeader(Name = "If-Match")] string ifMatch,
+        [FromBody] RequestAtualizarTarefa request,
         CancellationToken cancellationToken)
     {
-        if (!TentarLerVersao(out var versao, out var erro))
+        if (!TentarLerVersao(ifMatch, out var versao, out var erro))
         {
             return erro!;
         }
@@ -153,7 +153,7 @@ public sealed class TarefasController : ControllerBase
         Guid id,
         [FromHeader(Name = "If-Match")] string ifMatch,
         CancellationToken ct)
-        => ExecutarComando(id, (v) => useCase.Iniciar(id, v, ct));
+        => ExecutarComando(ifMatch, id, (v) => useCase.Iniciar(id, v, ct));
 
     /// <summary>
     /// Conclui a tarefa (Em andamento → Concluído). Requer If-Match.
@@ -172,7 +172,7 @@ public sealed class TarefasController : ControllerBase
         Guid id,
         [FromHeader(Name = "If-Match")] string ifMatch,
         CancellationToken ct)
-        => ExecutarComando(id, (v) => useCase.Concluir(id, v, ct));
+        => ExecutarComando(ifMatch, id, (v) => useCase.Concluir(id, v, ct));
 
     /// <summary>
     /// Reabre a tarefa (Concluído → Pendente). Requer If-Match.
@@ -191,7 +191,7 @@ public sealed class TarefasController : ControllerBase
         Guid id,
         [FromHeader(Name = "If-Match")] string ifMatch,
         CancellationToken ct)
-        => ExecutarComando(id, (v) => useCase.Reabrir(id, v, ct));
+        => ExecutarComando(ifMatch, id, (v) => useCase.Reabrir(id, v, ct));
 
     /// <summary>
     /// Exclui a tarefa (soft delete). Requer If-Match.
@@ -210,7 +210,7 @@ public sealed class TarefasController : ControllerBase
         [FromHeader(Name = "If-Match")] string ifMatch,
         CancellationToken cancellationToken)
     {
-        if (!TentarLerVersao(out var versao, out var erro))
+        if (!TentarLerVersao(ifMatch, out var versao, out var erro))
         {
             return erro!;
         }
@@ -236,9 +236,12 @@ public sealed class TarefasController : ControllerBase
         return resultado.ParaHttp(HttpContext, "Histórico da tarefa");
     }
 
-    private async Task<IActionResult> ExecutarComando(Guid id, Func<uint, Task<Domain.Resultados.Resultado<TarefaResponse>>> comando)
+    private async Task<IActionResult> ExecutarComando(
+        string ifMatch,
+        Guid id,
+        Func<uint, Task<Domain.Resultados.Resultado<TarefaResponse>>> comando)
     {
-        if (!TentarLerVersao(out var versao, out var erro))
+        if (!TentarLerVersao(ifMatch, out var versao, out var erro))
         {
             return erro!;
         }
@@ -252,11 +255,19 @@ public sealed class TarefasController : ControllerBase
         return resultado.ParaHttp(HttpContext, "Operação realizada com sucesso");
     }
 
-    private bool TentarLerVersao(out uint versao, out IActionResult? erro)
+    private bool TentarLerVersao(string? ifMatchInformado, out uint versao, out IActionResult? erro)
     {
         versao = 0;
         erro = null;
-        if (!Request.Headers.TryGetValue("If-Match", out var raw) || string.IsNullOrWhiteSpace(raw))
+        var raw = ifMatchInformado;
+        if (string.IsNullOrWhiteSpace(raw)
+            && Request.Headers.TryGetValue("If-Match", out var header)
+            && !string.IsNullOrWhiteSpace(header))
+        {
+            raw = header.ToString();
+        }
+
+        if (string.IsNullOrWhiteSpace(raw))
         {
             erro = StatusCode(StatusCodes.Status428PreconditionRequired,
                 RespostaPadrao<object>.ComErro("Informe o header If-Match com o ETag obtido no GET.", "Pré-condição obrigatória", HttpContext.TraceIdentifier));
