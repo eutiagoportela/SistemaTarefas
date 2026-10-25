@@ -548,7 +548,7 @@ Auth é **caso de uso de aplicação** + **infra de token**, não passa pelo agr
 ### 📥 Passo 1: Clonar o repositório
 
 ```bash
-git clone https://github.com/SEU_USUARIO/SistemaTarefas.git
+git clone https://github.com/eutiagoportela/SistemaTarefas.git
 cd SistemaTarefas
 ```
 
