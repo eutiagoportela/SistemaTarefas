@@ -58,7 +58,10 @@ CRUD, filtros, autenticação JWT e demais capacidades: [Funcionalidades](#-func
   - [2. TDD do domínio](#2-fluxo-tdd-do-domínio-fase-1)
   - [3. Polly (resiliência)](#3-fluxo-de-resiliência-polly)
   - [4. HTTP (Swagger)](#4-fluxo-http-swagger--banco--resposta)
+  - [4.1 Referências em runtime (uma request)](#41-referências-em-runtime-uma-request)
   - [5. DDD (camadas e comandos)](#5-fluxo-ddd-dependências-entre-camadas)
+  - [Agregados e limites](#agregados-e-limites)
+  - [Máquina de estados da Tarefa](#máquina-de-estados-da-tarefa-regras-no-domain)
   - [Observabilidade nos fluxos](#observabilidade-cliente--servidor)
 - [Pré-requisitos](#-pré-requisitos)
 - [Instalação e Configuração](#-instalação-e-configuração)
@@ -313,6 +316,90 @@ Falhas de negócio vão no **envelope** (`mensagem`, `erros`, **`traceId`**) e, 
 
 **Comandos com versão:** `GET /api/v1/tarefas/{id}` devolve header **ETag**; `PUT`, `DELETE` e `POST .../iniciar|concluir|reabrir` exigem **If-Match** com essa versão.
 
+#### 4.1 Referências em runtime (uma request)
+
+O diagrama acima mostra a **ordem no tempo** (middleware → use case → banco). Aqui entra a **ordem de dependências na execução**: quem chama quem e como o container liga interface → implementação.
+
+| Visão | O que mostra |
+|-------|----------------|
+| **Compile-time (`.csproj`)** | Api referencia Application + Infrastructure; Application **não** referencia Infrastructure (portas no Domain / Application). |
+| **Runtime (DI + chamadas)** | O que **executa** quando o cliente envia HTTP (Swagger, Postman, etc.). |
+
+```mermaid
+flowchart TB
+    subgraph Cliente
+        U[Usuario / Swagger]
+    end
+
+    subgraph Api
+        MW[Middlewares + JWT]
+        C[Controller]
+        RH[ResultadoHttp]
+    end
+
+    subgraph Communication
+        DTO[Request / Response]
+    end
+
+    subgraph Application
+        UC[Use Case]
+        VAL[FluentValidation]
+        MAP[ParaResponse]
+        PORTA[Portas: IUsuarioAtual, ITokenService]
+    end
+
+    subgraph Domain
+        ENT[Entidades + VO + regras]
+        IFACE[ITarefaRepository, IUnitOfWork]
+    end
+
+    subgraph Infrastructure
+        REPO[TarefaRepository / UsuarioRepository]
+        UOW[UnitOfWork]
+        CTX[TarefasDbContext]
+    end
+
+    subgraph Banco
+        MY[(MySQL)]
+    end
+
+    U -->|HTTP JSON| MW
+    MW --> C
+    C --> DTO
+    C -->|FromServices| UC
+    UC --> VAL
+    UC --> ENT
+    UC --> IFACE
+    UC --> PORTA
+    IFACE -.->|DI injeta| REPO
+    IFACE -.->|DI injeta| UOW
+    PORTA -.->|DI injeta| REPO
+    REPO --> CTX
+    UOW --> CTX
+    CTX --> MY
+    UC --> MAP
+    UC -->|Resultado T| C
+    C --> RH
+    RH -->|RespostaPadrao + traceId| U
+```
+
+**Regra de ouro:** o use case **só enxerga interfaces** (`ITarefaRepository`, `IUnitOfWork`). Ele **não** importa `TarefasDbContext`. A Api **não** chama repositório direto.
+
+**Cadeia de injeção típica** (`POST /api/v1/tarefas` autenticado):
+
+```text
+TarefasController
+  ← ICriarTarefaUseCase ← CriarTarefaUseCase
+       ← IValidator<RequestCriarTarefa>
+       ← ITarefaRepository ← TarefaRepository ← TarefasDbContext (scoped)
+       ← IUnitOfWork ← UnitOfWork ← mesmo DbContext
+       ← IUsuarioAtual ← UsuarioAtual ← IHttpContextAccessor (claims JWT)
+       ← TimeProvider
+       ← ILogger<CriarTarefaUseCase>
+```
+
+Registros: `AddApplication` (use cases, validators) e `AddMySqlConfiguration` / JWT na Infrastructure (`Program.cs`).
+
 ---
 
 ### 5. Fluxo DDD (dependências entre camadas)
@@ -380,6 +467,8 @@ stateDiagram-v2
 Cada transição válida pode **incrementar `Versao`** e, em alguns casos, **registrar evento** (`TarefaConcluida`, `TarefaReaberta`, `TarefaCriada`).
 
 #### Mapa de referências (dependências entre camadas)
+
+Visão **estática** das camadas (build). Para **uma request** com DI e MySQL, ver [§4.1 Referências em runtime](#41-referências-em-runtime-uma-request).
 
 ```mermaid
 flowchart TB
