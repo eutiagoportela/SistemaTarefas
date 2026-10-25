@@ -414,7 +414,7 @@ sequenceDiagram
     end
     D-->>UC: Tarefa + evento TarefaCriada
     UC->>R: AdicionarAsync(tarefa)
-    Note over R: EF rastreia entidade;<br/>ainda não há INSERT
+    Note over R: EF rastreia entidade (sem INSERT ainda)
     UC->>UOW: CommitAsync
     UOW->>W: auditoria + SaveChangesAsync
     W-->>UC: ok
