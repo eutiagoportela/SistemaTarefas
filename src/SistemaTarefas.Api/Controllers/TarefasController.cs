@@ -124,6 +124,7 @@ public sealed class TarefasController : ControllerBase
         [FromServices] IAtualizarTarefaUseCase useCase,
         Guid id,
         [FromBody] RequestAtualizarTarefa request,
+        [FromHeader(Name = "If-Match")] string ifMatch,
         CancellationToken cancellationToken)
     {
         if (!TentarLerVersao(out var versao, out var erro))
@@ -147,7 +148,11 @@ public sealed class TarefasController : ControllerBase
     [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status412PreconditionFailed)]
     [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status428PreconditionRequired)]
     [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status500InternalServerError)]
-    public Task<IActionResult> Iniciar([FromServices] IAlterarStatusTarefaUseCase useCase, Guid id, CancellationToken ct)
+    public Task<IActionResult> Iniciar(
+        [FromServices] IAlterarStatusTarefaUseCase useCase,
+        Guid id,
+        [FromHeader(Name = "If-Match")] string ifMatch,
+        CancellationToken ct)
         => ExecutarComando(id, (v) => useCase.Iniciar(id, v, ct));
 
     /// <summary>
@@ -162,7 +167,11 @@ public sealed class TarefasController : ControllerBase
     [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status412PreconditionFailed)]
     [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status428PreconditionRequired)]
     [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status500InternalServerError)]
-    public Task<IActionResult> Concluir([FromServices] IAlterarStatusTarefaUseCase useCase, Guid id, CancellationToken ct)
+    public Task<IActionResult> Concluir(
+        [FromServices] IAlterarStatusTarefaUseCase useCase,
+        Guid id,
+        [FromHeader(Name = "If-Match")] string ifMatch,
+        CancellationToken ct)
         => ExecutarComando(id, (v) => useCase.Concluir(id, v, ct));
 
     /// <summary>
@@ -177,7 +186,11 @@ public sealed class TarefasController : ControllerBase
     [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status412PreconditionFailed)]
     [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status428PreconditionRequired)]
     [ProducesResponseType(typeof(RespostaPadrao<TarefaResponse>), StatusCodes.Status500InternalServerError)]
-    public Task<IActionResult> Reabrir([FromServices] IAlterarStatusTarefaUseCase useCase, Guid id, CancellationToken ct)
+    public Task<IActionResult> Reabrir(
+        [FromServices] IAlterarStatusTarefaUseCase useCase,
+        Guid id,
+        [FromHeader(Name = "If-Match")] string ifMatch,
+        CancellationToken ct)
         => ExecutarComando(id, (v) => useCase.Reabrir(id, v, ct));
 
     /// <summary>
@@ -194,6 +207,7 @@ public sealed class TarefasController : ControllerBase
     public async Task<IActionResult> Remover(
         [FromServices] IRemoverTarefaUseCase useCase,
         Guid id,
+        [FromHeader(Name = "If-Match")] string ifMatch,
         CancellationToken cancellationToken)
     {
         if (!TentarLerVersao(out var versao, out var erro))
