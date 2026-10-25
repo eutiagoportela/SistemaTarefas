@@ -1,15 +1,48 @@
 # 📋 Sistema de Gestão de Tarefas (ToDo)
 
-API RESTful para gerenciamento de tarefas, desenvolvida para o desafio técnico .NET — Docker MySQL, execução com F5 no Visual Studio, Swagger na raiz com login e **Authorize**.
+API RESTful para gerenciamento de tarefas (.NET 8) — Docker MySQL, execução com F5 no Visual Studio, Swagger na raiz com login e **Authorize**.
 
 [![.NET](https://img.shields.io/badge/.NET-8.0-512BD4?logo=dotnet)](https://dotnet.microsoft.com/)
 [![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)](https://www.mysql.com/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?logo=docker&logoColor=white)](https://www.docker.com/)
+[![CI](https://img.shields.io/github/actions/workflow/status/eutiagoportela/SistemaTarefas/ci.yml?branch=master&label=CI&logo=githubactions)](https://github.com/eutiagoportela/SistemaTarefas/actions/workflows/ci.yml)
+
+---
+
+## 🚀 Teste rápido — API hospedada (Swagger)
+
+| Item | Valor |
+|------|--------|
+| **Repositório** | https://github.com/eutiagoportela/SistemaTarefas |
+| **Swagger (demo)** | https://sistema-tarefas-api-1rdd.onrender.com |
+| **OpenAPI JSON** | https://sistema-tarefas-api-1rdd.onrender.com/swagger/v1/swagger.json |
+| **Health** | https://sistema-tarefas-api-1rdd.onrender.com/health |
+
+**Passos no Swagger online:**
+
+1. **GET /health** → `Healthy` (plano free do Render pode demorar ~1 min após idle).
+2. **POST /api/v1/auth/login** com o JSON:
+
+```json
+{
+  "nomeUsuario": "demo",
+  "senha": "DemoSegura2026!"
+}
+```
+
+3. Copie `dados.token` → **Authorize** → `Bearer {token}`.
+4. **POST /api/v1/tarefas** ou **GET /api/v1/tarefas** → anote **`id`** e **`versao`** (tarefa nova: `versao` = `1`).
+5. **PUT** (ou DELETE / iniciar / concluir / reabrir) → header **`If-Match`** = número **`versao`** (não use `traceId` da resposta).
+
+CRUD, filtros, autenticação JWT e demais capacidades: [Funcionalidades](#-funcionalidades) e [Endpoints da API](#-endpoints-da-api). Arquitetura, testes e instalação local: índice abaixo.
+
+**Rodar local (F5):** [Instalação e Configuração](#-instalação-e-configuração) — login `admin` / `Admin123`.
 
 ---
 
 ## 📋 Índice
 
+- [Teste rápido — API hospedada](#-teste-rápido--api-hospedada-swagger)
 - [Sobre o Projeto](#-sobre-o-projeto)
 - [Funcionalidades](#-funcionalidades)
 - [Tecnologias Utilizadas](#-tecnologias-utilizadas)
@@ -58,7 +91,7 @@ Sistema para **criar, listar, atualizar e concluir tarefas** (ToDo), com status 
 - ✅ **CRUD de Tarefas**: criar, listar (filtros + paginação), obter por ID, atualizar e excluir (soft delete)
 - ✅ **Autenticação JWT**: registrar, login, refresh e logout
 - ✅ **Fluxo de status**: iniciar, concluir e reabrir tarefa
-- ✅ **Filtros do enunciado**: status, vencimento, atrasadas, busca textual
+- ✅ **Filtros**: status, vencimento, atrasadas, busca textual
 - ✅ **Validações**: FluentValidation na Application + regras no Domain
 - ✅ **Respostas padronizadas**: envelope `RespostaPadrao` em todos os endpoints
 - ✅ **Documentação interativa**: Swagger/OpenAPI com descrições por endpoint, códigos HTTP e JWT (**Authorize**)
@@ -1136,7 +1169,7 @@ Authorization: Bearer token_invalido
 |---------|--------|
 | **Directory.Build.props** | Aplica a **mesma configuração** em todos os projetos da pasta (`net8.0`, nullable, implicit usings, lang version). Evita repetir `<PropertyGroup>` em cada `.csproj`. |
 | **Directory.Packages.props** | **Central Package Management (CPM)**: versões dos pacotes NuGet ficam **só aqui**; nos `.csproj` entra `<PackageReference Include="..." />` **sem** `Version=`. Facilita atualizar EF, Pomelo, xUnit etc. em um lugar. |
-| **global.json** | Fixa qual SDK .NET a solution usa (8.0.426), para build igual em máquina do avaliador e CI. |
+| **global.json** | Fixa qual SDK .NET a solution usa (8.0.426), para build reproduzível localmente e no CI. |
 
 ---
 
@@ -1156,31 +1189,4 @@ Authorization: Bearer token_invalido
 
 ## 🌐 Demo hospedada
 
-A API está publicada no **Render** (Docker) com banco MySQL gerenciado na nuvem.
-
-| Item | Valor |
-|------|--------|
-| **Swagger UI** | https://sistema-tarefas-api-1rdd.onrender.com |
-| **OpenAPI JSON** | https://sistema-tarefas-api-1rdd.onrender.com/swagger/v1/swagger.json |
-| **Health** | https://sistema-tarefas-api-1rdd.onrender.com/health |
-| **Login (demo online)** | usuário `demo` / senha `DemoSegura2026!` |
-
-### Como testar (Swagger)
-
-1. Abra a **Swagger UI** (link acima). No plano free, a primeira requisição após idle pode levar ~1 min.
-2. **GET /health** → Execute → resposta **Healthy**.
-3. **POST /api/v1/auth/login** com o JSON:
-
-```json
-{
-  "nomeUsuario": "demo",
-  "senha": "DemoSegura2026!"
-}
-```
-
-4. Copie `dados.token` → botão **Authorize** → `Bearer {token}`.
-5. **POST /api/v1/tarefas** (criar) ou **GET /api/v1/tarefas** (listar) — anote o **`id`** e o número **`versao`** da tarefa (tarefa nova costuma ter `versao: 1`).
-6. Em **PUT**, **DELETE** ou **POST …/iniciar|concluir|reabrir**, preencha o header **`If-Match`** no Swagger com esse número (ex.: `1`). Também vale o valor do header **ETag** do **GET /api/v1/tarefas/{id}** (com ou sem aspas).
-7. Sem `If-Match` a API responde **428** — isso é esperado (concorrência otimista). Mais detalhes nas **Fases 2–3** deste README.
-
-Execução **local** (Docker + F5): seção [Instalação e Configuração](#-instalação-e-configuração) — usuário `admin` / `Admin123`.
+API no **Render** (Docker) com MySQL na nuvem. Links e roteiro: [Teste rápido — API hospedada](#-teste-rápido--api-hospedada-swagger).
