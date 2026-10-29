@@ -6,10 +6,10 @@ using Xunit;
 
 namespace SistemaTarefas.Api.IntegrationTests;
 
-[Trait("Category", "Integration")]
+[Trait("Category", "Integration")] // serve para categorizar os testes usando um nome e um valor.
 public class SwaggerOpenApiTests : IAsyncLifetime
 {
-    private readonly MySqlContainer _mysql = new MySqlBuilder()
+    private readonly MySqlContainer _mysql = new MySqlBuilder() // cria container MySQL para testes de integração
         .WithImage("mysql:8.0")
         .WithUsername("tarefas")
         .WithPassword("tarefas123")
@@ -19,7 +19,7 @@ public class SwaggerOpenApiTests : IAsyncLifetime
     private WebApplicationFactory<Program>? _factory;
     private HttpClient? _client;
 
-    public async Task InitializeAsync()
+    public async Task InitializeAsync() // inicializa o container MySQL e cria a fábrica de aplicação para testes
     {
         await _mysql.StartAsync();
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
@@ -47,7 +47,7 @@ public class SwaggerOpenApiTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task OpenApi_PutTarefas_DeveIncluirHeaderIfMatch()
+    public async Task OpenApi_PutTarefas_DeveIncluirHeaderIfMatch() // testa se o OpenAPI gerado inclui o cabeçalho If-Match para a operação PUT de atualização de tarefas
     {
         var json = await _client!.GetStringAsync("/swagger/v1/swagger.json");
         json.Should().Contain("\"If-Match\"");

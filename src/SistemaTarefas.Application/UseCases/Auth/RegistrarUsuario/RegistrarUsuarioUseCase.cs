@@ -7,12 +7,7 @@ using SistemaTarefas.Domain.Enums;
 using SistemaTarefas.Domain.Repositorios;
 using SistemaTarefas.Domain.Resultados;
 
-namespace SistemaTarefas.Application.UseCases.Auth;
-
-public interface IRegistrarUsuarioUseCase
-{
-    Task<Resultado> Execute(RequestRegistrar request, CancellationToken cancellationToken);
-}
+namespace SistemaTarefas.Application.UseCases.Auth.RegistrarUsuario;
 
 public sealed class RegistrarUsuarioUseCase : IRegistrarUsuarioUseCase
 {
@@ -39,26 +34,51 @@ public sealed class RegistrarUsuarioUseCase : IRegistrarUsuarioUseCase
         _logger = logger;
     }
 
-    public async Task<Resultado> Execute(RequestRegistrar request, CancellationToken cancellationToken)
+    public async Task<Resultado> Execute(
+        RequestRegistrar request,
+        CancellationToken cancellationToken)
     {
-        var validacao = await _validator.ValidateAsync(request, cancellationToken);
+        var validacao = await _validator.ValidateAsync(
+            request,
+            cancellationToken);
+
         if (!validacao.IsValid)
         {
-            var erros = validacao.Errors.Select(e => e.ErrorMessage).ToList();
-            _logger.LogWarning("Dados inválidos ao registrar usuário: {Erros}", string.Join(", ", erros));
+            var erros = validacao.Errors
+                .Select(e => e.ErrorMessage)
+                .ToList();
+
+            _logger.LogWarning(
+                "Dados inválidos ao registrar usuário: {Erros}",
+                string.Join(", ", erros));
+
             return Resultado.Validacao("Erros de validação", erros);
         }
 
-        var existente = await _usuarios.ObterPorNomeAsync(request.NomeUsuario, cancellationToken);
+        var existente = await _usuarios.ObterPorNomeAsync(
+            request.NomeUsuario,
+            cancellationToken);
+
         if (existente is not null)
         {
-            _logger.LogWarning("Tentativa de registro com usuário já existente: {NomeUsuario}", request.NomeUsuario);
-            return Resultado.Conflito($"O usuário '{request.NomeUsuario}' já está cadastrado.");
+            _logger.LogWarning(
+                "Tentativa de registro com usuário já existente: {NomeUsuario}",
+                request.NomeUsuario);
+
+            return Resultado.Conflito(
+                $"O usuário '{request.NomeUsuario}' já está cadastrado.");
         }
 
-        var usuario = Usuario.Criar(request.NomeUsuario, _hasher.Hash(request.Senha), PapelUsuario.Usuario, _relogio);
+        var usuario = Usuario.Criar(
+            request.NomeUsuario,
+            _hasher.Hash(request.Senha),
+            PapelUsuario.Usuario,
+            _relogio);
+
         await _usuarios.AdicionarAsync(usuario, cancellationToken);
+
         await _uow.CommitAsync(cancellationToken);
+
         return Resultado.Ok();
     }
 }

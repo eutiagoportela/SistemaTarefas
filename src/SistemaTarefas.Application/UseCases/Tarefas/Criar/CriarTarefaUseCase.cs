@@ -9,12 +9,7 @@ using SistemaTarefas.Domain.Excecoes;
 using SistemaTarefas.Domain.Repositorios;
 using SistemaTarefas.Domain.Resultados;
 
-namespace SistemaTarefas.Application.UseCases.Tarefas;
-
-public interface ICriarTarefaUseCase
-{
-    Task<Resultado<TarefaResponse>> Execute(RequestCriarTarefa request, CancellationToken cancellationToken);
-}
+namespace SistemaTarefas.Application.UseCases.Tarefas.Criar;
 
 public sealed class CriarTarefaUseCase : ICriarTarefaUseCase
 {

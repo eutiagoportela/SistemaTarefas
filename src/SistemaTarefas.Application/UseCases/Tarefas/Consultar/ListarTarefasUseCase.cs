@@ -5,7 +5,7 @@ using SistemaTarefas.Domain.Enums;
 using SistemaTarefas.Domain.Repositorios;
 using SistemaTarefas.Domain.Resultados;
 
-namespace SistemaTarefas.Application.UseCases.Tarefas;
+namespace SistemaTarefas.Application.UseCases.Tarefas.Consultar;
 
 public sealed record FiltroTarefas(
     StatusTarefa? Status,
@@ -17,11 +17,6 @@ public sealed record FiltroTarefas(
     int Tamanho,
     string OrdenarPor,
     string Direcao);
-
-public interface IListarTarefasUseCase
-{
-    Task<Resultado<RespostaPaginada<TarefaResponse>>> Execute(FiltroTarefas filtro, CancellationToken cancellationToken);
-}
 
 public sealed class ListarTarefasUseCase : IListarTarefasUseCase
 {

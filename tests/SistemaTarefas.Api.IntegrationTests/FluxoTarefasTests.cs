@@ -13,7 +13,7 @@ namespace SistemaTarefas.Api.IntegrationTests;
 [Trait("Category", "Integration")]
 public class FluxoTarefasTests : IAsyncLifetime
 {
-    private readonly MySqlContainer _mysql = new MySqlBuilder()
+    private readonly MySqlContainer _mysql = new MySqlBuilder() // cria container MySQL para testes de integração
         .WithImage("mysql:8.0")
         .WithUsername("tarefas")
         .WithPassword("tarefas123")
@@ -23,7 +23,7 @@ public class FluxoTarefasTests : IAsyncLifetime
     private WebApplicationFactory<Program>? _factory;
     private HttpClient _client = null!;
 
-    public async Task InitializeAsync()
+    public async Task InitializeAsync() // inicializa o container MySQL e cria a fábrica de aplicação para testes
     {
         await _mysql.StartAsync();
         _factory = new WebApplicationFactory<Program>().WithWebHostBuilder(builder =>
@@ -51,7 +51,7 @@ public class FluxoTarefasTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task Login_E_CriarTarefa_DeveFuncionar()
+    public async Task Login_E_CriarTarefa_DeveFuncionar() //testa o fluxo completo de login e criação de tarefa
     {
         var login = await _client.PostAsJsonAsync("/api/v1/auth/login", new { nomeUsuario = "admin", senha = "Admin123" });
         login.StatusCode.Should().Be(HttpStatusCode.OK);
@@ -71,7 +71,7 @@ public class FluxoTarefasTests : IAsyncLifetime
     }
 
     [Fact]
-    public async Task AtualizarTarefa_ComIfMatch_DeveRetornarOk()
+    public async Task AtualizarTarefa_ComIfMatch_DeveRetornarOk() // testa a atualização de uma tarefa usando o cabeçalho If-Match para controle de versão
     {
         var login = await _client.PostAsJsonAsync("/api/v1/auth/login", new { nomeUsuario = "admin", senha = "Admin123" });
         login.EnsureSuccessStatusCode();

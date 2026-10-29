@@ -3,16 +3,11 @@ using Microsoft.Extensions.Logging;
 using SistemaTarefas.Application.Abstracoes;
 using SistemaTarefas.Communication.Requests;
 using SistemaTarefas.Communication.Responses;
-using SistemaTarefas.Domain.Entidades;
 using SistemaTarefas.Domain.Repositorios;
 using SistemaTarefas.Domain.Resultados;
+using EntidadeRefreshToken = SistemaTarefas.Domain.Entidades.RefreshToken;
 
-namespace SistemaTarefas.Application.UseCases.Auth;
-
-public interface ILoginUseCase
-{
-    Task<Resultado<LoginResponse>> Execute(RequestLogin request, CancellationToken cancellationToken);
-}
+namespace SistemaTarefas.Application.UseCases.Auth.Login;
 
 public sealed class LoginUseCase : ILoginUseCase
 {
@@ -42,33 +37,64 @@ public sealed class LoginUseCase : ILoginUseCase
         _logger = logger;
     }
 
-    public async Task<Resultado<LoginResponse>> Execute(RequestLogin request, CancellationToken cancellationToken)
+    public async Task<Resultado<LoginResponse>> Execute(
+        RequestLogin request,
+        CancellationToken cancellationToken)
     {
-        var validacao = await _validator.ValidateAsync(request, cancellationToken);
+        var validacao = await _validator.ValidateAsync(
+            request,
+            cancellationToken);
+
         if (!validacao.IsValid)
         {
-            var erros = validacao.Errors.Select(e => e.ErrorMessage).ToList();
-            _logger.LogWarning("Dados inválidos ao realizar login: {Erros}", string.Join(", ", erros));
-            return Resultado<LoginResponse>.Validacao("Erros de validação", erros);
+            var erros = validacao.Errors
+                .Select(e => e.ErrorMessage)
+                .ToList();
+
+            _logger.LogWarning(
+                "Dados inválidos ao realizar login: {Erros}",
+                string.Join(", ", erros));
+
+            return Resultado<LoginResponse>.Validacao(
+                "Erros de validação",
+                erros);
         }
 
-        _logger.LogInformation("Tentativa de login: {NomeUsuario}", request.NomeUsuario);
+        _logger.LogInformation(
+            "Tentativa de login: {NomeUsuario}",
+            request.NomeUsuario);
 
-        var usuario = await _usuarios.ObterPorNomeAsync(request.NomeUsuario, cancellationToken);
-        if (usuario is null || !_hasher.Verificar(request.Senha, usuario.SenhaHash))
+        var usuario = await _usuarios.ObterPorNomeAsync(
+            request.NomeUsuario,
+            cancellationToken);
+
+        if (usuario is null ||
+            !_hasher.Verificar(request.Senha, usuario.SenhaHash))
         {
-            _logger.LogWarning("Credenciais inválidas para usuário {NomeUsuario}", request.NomeUsuario);
-            return Resultado<LoginResponse>.NaoAutorizado("Credenciais inválidas");
+            _logger.LogWarning(
+                "Credenciais inválidas para usuário {NomeUsuario}",
+                request.NomeUsuario);
+
+            return Resultado<LoginResponse>.NaoAutorizado(
+                "Credenciais inválidas");
         }
 
         var (token, expira) = _tokens.GerarAccessToken(usuario);
         var refresh = _tokens.GerarRefreshToken();
+
         await _usuarios.AdicionarRefreshTokenAsync(
-            RefreshToken.Criar(usuario.Id, _tokens.HashRefreshToken(refresh), expira.AddDays(7), _relogio),
+            EntidadeRefreshToken.Criar(
+                usuario.Id,
+                _tokens.HashRefreshToken(refresh),
+                expira.AddDays(7),
+                _relogio),
             cancellationToken);
+
         await _uow.CommitAsync(cancellationToken);
 
-        _logger.LogInformation("Login realizado com sucesso: {NomeUsuario}", request.NomeUsuario);
+        _logger.LogInformation(
+            "Login realizado com sucesso: {NomeUsuario}",
+            request.NomeUsuario);
 
         return Resultado<LoginResponse>.Ok(new LoginResponse
         {

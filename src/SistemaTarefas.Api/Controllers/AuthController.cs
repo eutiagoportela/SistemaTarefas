@@ -2,7 +2,10 @@ using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.AspNetCore.RateLimiting;
 using SistemaTarefas.Api.Extensoes;
-using SistemaTarefas.Application.UseCases.Auth;
+using SistemaTarefas.Application.UseCases.Auth.Login;
+using SistemaTarefas.Application.UseCases.Auth.Logout;
+using SistemaTarefas.Application.UseCases.Auth.RefreshToken;
+using SistemaTarefas.Application.UseCases.Auth.RegistrarUsuario;
 using SistemaTarefas.Communication.Requests;
 using SistemaTarefas.Communication.Responses;
 
@@ -76,6 +79,17 @@ public sealed class AuthController : ControllerBase
     [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status200OK)]
     [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status401Unauthorized)]
     [ProducesResponseType(typeof(RespostaPadrao<object>), StatusCodes.Status500InternalServerError)]
-    public IActionResult Logout()
-        => Ok(RespostaPadrao<object>.ComSucesso(null, "Logout realizado. Descarte o token no cliente.", HttpContext.TraceIdentifier));
+    public async Task<IActionResult> Logout(
+    [FromServices] ILogoutUseCase useCase,
+    [FromBody] RequestLogout request,
+    CancellationToken cancellationToken)
+    {
+        var resultado = await useCase.Execute(
+            request.RefreshToken,
+            cancellationToken);
+
+        return resultado.ParaHttp(
+            HttpContext,
+            "Logout realizado com sucesso");
+    }
 }

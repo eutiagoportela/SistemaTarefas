@@ -3,7 +3,7 @@ using FluentValidation;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using SistemaTarefas.Application.Abstracoes;
-using SistemaTarefas.Application.UseCases.Tarefas;
+using SistemaTarefas.Application.UseCases.Tarefas.Criar;
 using SistemaTarefas.Application.Validadores;
 using SistemaTarefas.Communication.Requests;
 using SistemaTarefas.Domain.Entidades;
@@ -15,8 +15,8 @@ namespace SistemaTarefas.Application.Tests;
 
 public class CriarTarefaUseCaseTests
 {
-    [Fact]
-    public async Task Execute_DeveRetornarValidacao_QuandoTituloVazio()
+    [Fact] // marca o método como um teste que será executado pelo xUnit
+    public async Task Execute_DeveRetornarValidacao_QuandoTituloVazio() // testa se o caso de uso retorna um resultado de validação quando o título da tarefa é vazio
     {
         var useCase = CriarSut(out _);
         var resultado = await useCase.Execute(new RequestCriarTarefa
@@ -30,7 +30,7 @@ public class CriarTarefaUseCaseTests
     }
 
     [Fact]
-    public async Task Execute_DevePersistir_QuandoDadosValidos()
+    public async Task Execute_DevePersistir_QuandoDadosValidos() // testa se o caso de uso persiste a tarefa quando os dados são válidos
     {
         var useCase = CriarSut(out var uow);
         var resultado = await useCase.Execute(new RequestCriarTarefa
@@ -45,7 +45,7 @@ public class CriarTarefaUseCaseTests
         uow.Verify(x => x.CommitAsync(It.IsAny<CancellationToken>()), Times.Once);
     }
 
-    private static CriarTarefaUseCase CriarSut(out Mock<IUnitOfWork> uow)
+    private static CriarTarefaUseCase CriarSut(out Mock<IUnitOfWork> uow) // cria uma instância do caso de uso CriarTarefaUseCase com dependências simuladas para testes
     {
         var repo = new Mock<ITarefaRepository>();
         uow = new Mock<IUnitOfWork>();
